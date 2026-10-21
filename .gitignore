@@ -1,5 +1,7 @@
 .venv/
 onnx_env/
-paternity.csv/
+paternity.csv
 .vscode/
 __pycache__/
+.DS_Store
+data.py
