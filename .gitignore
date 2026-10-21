@@ -1,0 +1,5 @@
+.venv/
+onnx_env/
+paternity.csv/
+.vscode/
+__pycache__/

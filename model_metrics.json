@@ -1,0 +1,21 @@
+{
+    "status": "success",
+    "random_forest": {
+        "roc_auc": 0.99999954,
+        "accuracy": 0.9999,
+        "weighted_avg": {
+            "precision": 0.9999000199960008,
+            "recall": 0.9999,
+            "f1-score": 0.9998999999989999
+        }
+    },
+    "decision_tree": {
+        "roc_auc": 0.9998,
+        "accuracy": 0.9998,
+        "weighted_avg": {
+            "precision": 0.9998,
+            "recall": 0.9998,
+            "f1-score": 0.9998
+        }
+    }
+}
