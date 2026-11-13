@@ -1,0 +1,2727 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GENETRACE // Forensic Paternity & STR Analytics Core</title>
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Chart.js for logarithmic locus charting -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
+  <script>
+    // Tailwind dark mode configuration
+tailwind.config = {
+  darkMode: 'class',
+  theme: {
+    extend: {
+      colors: {
+        // If your whole site uses bg-obsidian, this maps it to 
+        // a light gray (#F1F5F9) in light mode, and #0A0E1A in dark mode.
+        obsidian: {
+          DEFAULT: '#0A0E1A',
+          light: '#F1F5F9',
+        },
+        // Maps slatepanel to pure white in light mode, and keeps it dark otherwise
+        slatepanel: {
+          DEFAULT: '#111827',
+          light: '#FFFFFF',
+        },
+        // Keep your accents usable
+        cyanaccent: '#00E5FF',
+        ambermut: '#FFB347',
+        crimsonex: '#FF4D6D',
+        emeraldinc: '#34D399',
+      },
+      fontFamily: {
+        mono: ['"SF Mono"', 'Menlo', 'Monaco', 'Cascadia Code', 'monospace'],
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+      },
+    }
+  }
+}
+
+  </script>
+  <style>
+    html:not(.dark) [class*="bg-obsidian"] {
+      background-color: #F8FAFC !important;
+    }
+    html:not(.dark) [class*="bg-slatepanel"] {
+      background-color: #FFFFFF !important;
+    }
+    html:not(.dark) [class*="text-slatepanel"],
+    html:not(.dark) [class*="text-obsidian"],
+    html:not(.dark) [class*="text-white"] {
+      color: #0F172A !important;
+    }
+    html:not(.dark) [class*="text-gray-300"],
+    html:not(.dark) [class*="text-gray-400"] {
+      color: #334155 !important;
+    }
+    /* Custom scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #1e293b; }
+    ::-webkit-scrollbar-thumb { background: #00e5ff66; border-radius: 8px; }
+    ::-webkit-scrollbar-thumb:hover { background: #00e5ffcc; }
+
+    /* Electropherogram row hover */
+    .electro-row:hover { background: rgba(0, 229, 255, 0.06); }
+
+    /* Status badges */
+    .status-badge {
+      font-size: 0.65rem;
+      letter-spacing: 0.03em;
+      padding: 0.15rem 0.6rem;
+      border-radius: 20px;
+      font-weight: 600;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    /* Expandable drawer */
+    .drawer-content {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.35s ease-out, padding 0.2s ease;
+    }
+    .drawer-open .drawer-content {
+      max-height: 500px;
+      padding-top: 0.5rem;
+      padding-bottom: 0.5rem;
+    }
+
+    /* Print styles for official report */
+    @media print {
+      body {
+        background: #ffffff !important;
+        color: #000000 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+      body * {
+        visibility: hidden;
+      }
+      .no-print, header, section, main, #newCaseModal, #csvModal {
+        display: none !important;
+      }
+
+      /* Make reportModal transparent and take full page */
+      #reportModal {
+        display: block !important;
+        position: static !important;
+        inset: auto !important;
+        width: 100% !important;
+        height: auto !important;
+        min-height: 100% !important;
+        overflow: visible !important;
+        background: transparent !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        visibility: visible !important;
+      }
+
+      #reportModal > div {
+        border: none !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        visibility: visible !important;
+      }
+
+      /* Ensure the report content is visible and fills the page */
+      #reportContent, #reportContent * {
+        visibility: visible !important;
+      }
+
+      #reportContent {
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        background: #ffffff !important;
+        color: #000000 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        font-size: 11px !important;
+      }
+
+      @page {
+        margin: 1.2cm;
+        size: auto;
+      }
+    }
+
+    /* Light mode overrides */
+    .light-mode .bg-obsidian { background-color: #f1f5f9; }
+    .light-mode .bg-slatepanel { background-color: #ffffff; }
+    .light-mode .text-white { color: #0f172a; }
+    .light-mode .text-gray-300 { color: #334155; }
+    .light-mode .text-gray-400 { color: #64748b; }
+    .light-mode .text-gray-500 { color: #94a3b8; }
+    .light-mode .border-gray-800 { border-color: #e2e8f0; }
+    .light-mode .border-gray-700 { border-color: #cbd5e1; }
+    .light-mode .bg-gray-900\/60 { background-color: #f8fafc; }
+    .light-mode .bg-gray-900 { background-color: #f1f5f9; }
+    .light-mode .bg-gray-800 { background-color: #e2e8f0; }
+    .light-mode .bg-darkpanel { background-color: #f8fafc; }
+    .light-mode .text-cyanaccent { color: #0891b2; }
+    .light-mode .border-cyanaccent\/60 { border-color: #0891b2; }
+
+    /* Fade-in animation */
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .fade-in-up { animation: fadeInUp 0.3s ease-out; }
+
+    /* Pulse for processing status */
+    @keyframes softPulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    .pulse-soft { animation: softPulse 1.8s ease-in-out infinite; }
+  </style>
+</head>
+<body class="bg-obsidian text-slatepanel" id="appBody">
+
+  <!-- ==================== TOP NAVIGATION ==================== -->
+  <header class="border-b border-gray-800 bg-slatepanel/95 backdrop-blur-md sticky top-0 z-40 px-4 md:px-6 py-3">
+    <div class="max-w-[1700px] mx-auto flex flex-wrap items-center justify-between gap-3">
+      <!-- Left: Logo + Title -->
+      <div class="flex items-center gap-3">
+        <div class="p-2 bg-cyanaccent/10 rounded-lg border border-cyanaccent/30">
+          <i data-lucide="dna" class="w-6 h-6 text-cyanaccent"></i>
+        </div>
+        <div>
+          <h1 class="text-base md:text-lg font-bold tracking-tight flex items-center gap-2 text-white">
+            GENETRACE <span class="text-cyanaccent font-light">//</span>
+            <span class="text-xs md:text-sm font-normal text-gray-400">Forensic Paternity & STR Analytics Core</span>
+          </h1>
+          <div class="flex flex-wrap items-center gap-2 md:gap-3 text-[10px] md:text-[11px] text-gray-500 mt-0.5">
+            <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400" id="backendStatusDot"></span><span id="backendStatusText">ML Engine: Ready (Local Core)</span></span>
+            <span class="hidden sm:inline text-gray-700">|</span>
+            <span class="hidden sm:inline">Split Ratio: 70/15/15</span>
+            <span class="hidden sm:inline text-gray-700">|</span>
+            <span class="hidden sm:inline">Features: 180</span>
+            <span class="hidden sm:inline text-gray-700">|</span>
+            <span class="hidden sm:inline">Loci: 20 CODIS</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Actions -->
+      <div class="flex items-center gap-2 flex-wrap no-print">
+        <button id="newCaseBtn" class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md bg-cyanaccent/10 border border-cyanaccent/40 text-cyanaccent hover:bg-cyanaccent/20 transition">
+          <i data-lucide="folder-plus" class="w-3.5 h-3.5"></i> New Case
+        </button>
+        <button id="importCsvBtn" class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md bg-gray-800 border border-gray-700 text-gray-300 hover:bg-gray-700 transition">
+          <i data-lucide="upload" class="w-3.5 h-3.5"></i> Import CSV
+        </button>
+        <button id="loadDemoBtn" class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md bg-cyanaccent text-obsidian font-semibold hover:bg-cyanaccent/80 transition">
+          <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> Load Demo
+        </button>
+        <button id="themeToggle" class="p-2 rounded-md bg-gray-800 border border-gray-700 text-gray-300 hover:bg-gray-700 transition" title="Toggle Theme">
+          <i data-lucide="moon" class="w-4 h-4" id="themeIcon"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==================== MAIN WORKSPACE ==================== -->
+  <main class="max-w-[1700px] mx-auto p-4 md:p-6 grid grid-cols-12 gap-5">
+
+    <!-- LEFT: CASE WORKSPACE -->
+    <section class="col-span-12 lg:col-span-4 xl:col-span-3 space-y-4 no-print">
+      <div class="bg-slatepanel rounded-xl border border-gray-800 p-4">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-xs font-semibold tracking-wider text-gray-400 flex items-center gap-2 uppercase">
+            <i data-lucide="folder-open" class="w-3.5 h-3.5 text-cyanaccent"></i> Case Workspace
+          </h2>
+          <span class="text-[10px] px-2 py-0.5 bg-gray-800 rounded-full text-gray-400" id="caseCount">0 cases</span>
+        </div>
+        <div class="relative mb-2">
+          <i data-lucide="search" class="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-gray-500"></i>
+          <input type="text" id="caseSearch" placeholder="Search case ID, subject..." class="w-full pl-8 pr-3 py-2 text-xs bg-gray-900 border border-gray-700 rounded-md focus:outline-none focus:border-cyanaccent/60 text-gray-200 placeholder-gray-600">
+        </div>
+        <select id="statusFilter" class="w-full text-xs bg-gray-900 border border-gray-700 rounded-md px-2 py-1.5 text-gray-300 mb-3 focus:outline-none focus:border-cyanaccent/60">
+          <option value="All">All Status</option>
+          <option value="Draft">Draft</option>
+          <option value="Processing">Processing</option>
+          <option value="Completed">Completed</option>
+          <option value="Review Required">Review Required</option>
+        </select>
+        <div class="space-y-2 max-h-[520px] overflow-y-auto pr-1" id="caseListContainer">
+          <!-- Case items injected by JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT: MAIN PANEL -->
+    <section class="col-span-12 lg:col-span-8 xl:col-span-9 space-y-5">
+
+      <!-- CASE METADATA BANNER -->
+      <div class="bg-slatepanel rounded-xl border border-gray-800 p-4 flex flex-wrap items-center justify-between gap-4" id="caseBanner">
+        <div class="flex items-center gap-3">
+          <div class="p-2 bg-cyanaccent/5 rounded-lg border border-cyanaccent/20">
+            <i data-lucide="fingerprint" class="w-5 h-5 text-cyanaccent"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <h3 class="text-base font-bold text-white font-mono" id="activeCaseId">—</h3>
+              <span class="status-badge bg-gray-500/20 text-gray-400 border border-gray-500/30" id="activeCaseStatus">No Case</span>
+            </div>
+            <p class="text-[11px] text-gray-400 mt-0.5" id="activeCaseMeta">Select or create a case to begin analysis</p>
+          </div>
+        </div>
+        <div class="flex gap-4 text-xs">
+          <div class="text-right">
+            <div class="text-gray-500">Combined LR</div>
+            <div class="font-mono text-cyanaccent text-lg font-bold" id="cpiValue">—</div>
+          </div>
+          <div class="text-right">
+            <div class="text-gray-500">Verdict</div>
+            <div class="font-bold text-gray-500" id="verdictBadge">PENDING</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TRIAD INPUT GRID -->
+      <div class="bg-slatepanel rounded-xl border border-gray-800 p-4" id="triadGridPanel">
+        <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <h2 class="text-xs font-semibold tracking-wider text-gray-400 flex items-center gap-2 uppercase">
+            <i data-lucide="table" class="w-3.5 h-3.5 text-cyanaccent"></i> STR Triad Input Matrix
+            <span class="text-[10px] font-normal text-gray-600 normal-case">(20 CODIS Core Loci)</span>
+          </h2>
+          <button id="runAnalysisBtn" class="px-4 py-1.5 text-xs font-bold rounded-md bg-cyanaccent text-obsidian hover:bg-cyanaccent/80 transition flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed" disabled>
+            <i data-lucide="play" class="w-3.5 h-3.5"></i> Run Comparison
+          </button>
+        </div>
+
+        <div id="triadGridPlaceholder" class="py-16 text-center border border-dashed border-gray-700 rounded-lg">
+          <i data-lucide="flask-conical" class="w-10 h-10 text-gray-600 mx-auto mb-3"></i>
+          <p class="text-sm text-gray-500 mb-1">No active case triad</p>
+          <p class="text-xs text-gray-600">Click <span class="text-cyanaccent font-semibold">New Case</span> to initialize the grid, or <span class="text-cyanaccent font-semibold">Load Demo</span> to populate synthetic data.</p>
+        </div>
+
+        <div id="triadGridContainer" class="hidden">
+          <!-- Input matrix header -->
+          <div class="grid grid-cols-7 gap-2 text-[10px] font-bold text-gray-500 px-2 mb-2 uppercase tracking-wider">
+            <div class="col-span-1">Locus</div>
+            <div class="col-span-2 text-center text-cyan-400/80">Mother (M)</div>
+            <div class="col-span-2 text-center text-emerald-400/80">Child (C)</div>
+            <div class="col-span-2 text-center text-amber-400/80">Alleged Father (AF)</div>
+          </div>
+          <div id="lociInputGrid" class="space-y-1 max-h-[520px] overflow-y-auto pr-1 font-mono text-xs">
+            <!-- injected -->
+          </div>
+        </div>
+      </div>
+
+      <!-- RESULTS DASHBOARD -->
+      <div class="bg-slatepanel rounded-xl border border-gray-800 p-4" id="resultsPanel">
+        <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <h2 class="text-xs font-semibold tracking-wider text-gray-400 flex items-center gap-2 uppercase">
+            <i data-lucide="bar-chart-3" class="w-3.5 h-3.5 text-cyanaccent"></i> Comparative Analytics & Evidence Engine
+          </h2>
+          <div class="flex flex-wrap gap-3 text-[10px]">
+            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-400"></span> Match</span>
+            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-ambermut"></span> Mutation</span>
+            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-crimsonex"></span> Exclusion</span>
+          </div>
+        </div>
+
+        <!-- Metrics row -->
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5 text-xs">
+          <div class="bg-gray-900/60 p-2.5 rounded-lg border border-gray-800">
+            <div class="text-gray-500 text-[10px] uppercase tracking-wider">Evaluated Loci</div>
+            <div class="text-lg font-bold text-white font-mono" id="metricLoci">—</div>
+          </div>
+          <div class="bg-gray-900/60 p-2.5 rounded-lg border border-gray-800">
+            <div class="text-gray-500 text-[10px] uppercase tracking-wider">Compatible</div>
+            <div class="text-lg font-bold text-emerald-400 font-mono" id="metricMatches">—</div>
+          </div>
+          <div class="bg-gray-900/60 p-2.5 rounded-lg border border-gray-800">
+            <div class="text-gray-500 text-[10px] uppercase tracking-wider">Mutations</div>
+            <div class="text-lg font-bold text-ambermut font-mono" id="metricMutations">—</div>
+          </div>
+          <div class="bg-gray-900/60 p-2.5 rounded-lg border border-gray-800">
+            <div class="text-gray-500 text-[10px] uppercase tracking-wider">Exclusions</div>
+            <div class="text-lg font-bold text-crimsonex font-mono" id="metricExclusions">—</div>
+          </div>
+          <div class="bg-gray-900/60 p-2.5 rounded-lg border border-gray-800">
+            <div class="text-gray-500 text-[10px] uppercase tracking-wider">Combined LR</div>
+            <div class="text-lg font-bold text-cyanaccent font-mono" id="metricCPI">—</div>
+          </div>
+        </div>
+
+        <!-- Chart + ML narrative -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-5">
+          <div class="lg:col-span-2 bg-gray-900/40 rounded-lg border border-gray-800 p-3">
+            <div class="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-2">Locus Paternity Index (log₁₀ scale) vs. Threshold Bounds</div>
+            <div class="relative" style="height: 220px;">
+              <canvas id="locusChart"></canvas>
+            </div>
+          </div>
+        <div class="lg:col-span-1 bg-gray-900/40 rounded-lg border border-cyanaccent/20 p-3" id="mlNarrativePanel">
+      <div class="flex items-center justify-between gap-2 mb-3">
+        <div class="flex items-center gap-2">
+          <i data-lucide="brain-circuit" class="w-4 h-4 text-cyanaccent"></i>
+          <div class="text-[10px] font-semibold text-cyanaccent uppercase tracking-wider">
+            Genetic Inference
+          </div>
+        </div>
+        <span id="mlSourceBadge" class="text-[9px] px-1.5 py-0.5 rounded bg-gray-800 text-gray-400 border border-gray-700 font-mono">Local Core</span>
+      </div>
+
+  <div id="inferenceVerdict" class="text-sm font-bold mb-2"> Awaiting analysis </div>
+
+  <div class="mb-3">
+    <div class="text-[9px] uppercase tracking-wider text-gray-500 mb-1">
+      Parentage conclusion
+    </div>
+    <div id="inferenceConclusion"
+         class="text-xs text-gray-200 leading-relaxed">
+      Initialize a case to evaluate the genetic findings.
+    </div>
+  </div>
+
+  <div class="border-t border-gray-800 pt-2 mb-2">
+    <div class="text-[9px] uppercase tracking-wider text-gray-500 mb-1">
+      Statistical evidence
+    </div>
+    <div id="inferenceEvidence"
+         class="text-[11px] text-gray-400 leading-relaxed">
+      Awaiting validated statistical results.
+    </div>
+  </div>
+
+  <div id="inferenceReview"  class="hidden rounded-md border border-amber-500/20 bg-amber-500/5 p-2 text-[10px] text-amber-300 leading-relaxed"> </div>
+</div>
+</div>
+
+        <!-- Results table -->
+        <div class="overflow-x-auto max-h-[460px] overflow-y-auto rounded-lg border border-gray-800 w-full bg-slatepanel/50">
+          <table class="w-full text-xs font-mono min-w-[760px]">
+            <thead class="bg-gray-900/90 text-gray-400 sticky top-0 z-10 border-b border-gray-800">
+              <tr>
+                <th class="px-4 py-2.5 text-left font-semibold text-cyan-400 w-[14%]">Locus</th>
+                <th class="px-3 py-2.5 text-center font-semibold text-gray-300 w-[12%]">Mother (M)</th>
+                <th class="px-3 py-2.5 text-center font-semibold text-gray-300 w-[12%]">Child (C)</th>
+                <th class="px-3 py-2.5 text-center font-semibold text-gray-300 w-[14%]">Alleged Father (AF)</th>
+                <th class="px-3 py-2.5 text-center font-semibold text-cyanaccent w-[14%]">Obligate</th>
+                <th class="px-3 py-2.5 text-center font-semibold text-gray-300 w-[14%]">PI</th>
+                <th class="px-3 py-2.5 text-center font-semibold text-gray-300 w-[14%]">Status</th>
+                <th class="px-2 py-2.5 text-center font-semibold text-gray-400 w-[7%]"></th>
+              </tr>
+            </thead>
+            <tbody id="resultsTableBody">
+              <tr><td colspan="8" class="text-center py-8 text-gray-600 text-xs">No analysis results yet.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <!-- ==================== MACHINE LEARNING METRICS CORE ==================== -->
+<section class="max-w-[1700px] mx-auto p-4 md:p-6 fade-in-up no-print">
+  <div class="mb-4">
+    <h2 class="text-sm font-semibold tracking-wider text-cyanaccent uppercase flex items-center gap-2">
+      <i data-lucide="binary" class="w-4 h-4"></i> Pipeline Estimator Performance Validation
+    </h2>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Random Forest Estimator Panel -->
+    <div class="bg-slatepanel border border-gray-800 rounded-xl p-5 shadow-lg relative overflow-hidden">
+      <div class="absolute top-0 right-0 p-3 text-gray-800 pointer-events-none opacity-20">
+        <i data-lucide="boxes" class="w-24 h-24"></i>
+      </div>
+      <div class="flex items-center justify-between border-b border-gray-800 pb-3 mb-4">
+        <div class="flex items-center gap-2.5">
+          <div class="p-1.5 bg-cyanaccent/10 text-cyanaccent rounded-md border border-cyanaccent/20">
+            <i data-lucide="layers" class="w-4 h-4"></i>
+          </div>
+          <h3 class="text-sm font-bold text-white tracking-tight">Random Forest Classifier (Ensemble)</h3>
+        </div>
+        <span class="status-badge bg-emeraldinc/10 text-emeraldinc border border-emeraldinc/30">Active Model</span>
+      </div>
+      
+      <div class="grid grid-cols-2 gap-4 mb-5">
+        <div class="bg-gray-900/40 border border-gray-800/60 rounded-lg p-3 text-center">
+          <div class="text-[10px] uppercase tracking-wider text-gray-500 font-semibold mb-1">ROC-AUC Validation</div>
+          <div id="rf-roc" class="text-2xl font-black text-cyanaccent font-mono">--.---</div>
+        </div>
+        <div class="bg-gray-900/40 border border-gray-800/60 rounded-lg p-3 text-center">
+          <div class="text-[10px] uppercase tracking-wider text-gray-500 font-semibold mb-1">Global Accuracy</div>
+          <div id="rf-acc" class="text-2xl font-black text-white font-mono">--.--%</div>
+        </div>
+      </div>
+
+      <table class="w-full text-xs font-mono">
+        <thead>
+          <tr class="text-gray-500 border-b border-gray-800 text-left bg-gray-900/20">
+            <th class="py-2 px-3 font-semibold uppercase tracking-wider text-[10px]">Classification Vector</th>
+            <th class="py-2 px-3 font-semibold uppercase tracking-wider text-[10px]">Precision</th>
+            <th class="py-2 px-3 font-semibold uppercase tracking-wider text-[10px]">Recall</th>
+            <th class="py-2 px-3 font-semibold uppercase tracking-wider text-[10px]">F1-Score</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-800/40 text-gray-300">
+          <tr class="electro-row transition-colors">
+            <td class="py-2.5 px-3 text-white font-semibold font-sans">Weighted Avg.</td>
+            <td id="rf-precision" class="py-2.5 px-3">0.0000</td>
+            <td id="rf-recall" class="py-2.5 px-3">0.0000</td>
+            <td id="rf-f1" class="py-2.5 px-3 font-bold text-cyanaccent">0.0000</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Decision Tree Baseline Panel -->
+    <div class="bg-slatepanel border border-gray-800 rounded-xl p-5 shadow-lg relative overflow-hidden">
+      <div class="absolute top-0 right-0 p-3 text-gray-800 pointer-events-none opacity-20">
+        <i data-lucide="git-fork" class="w-24 h-24"></i>
+      </div>
+      <div class="flex items-center justify-between border-b border-gray-800 pb-3 mb-4">
+        <div class="flex items-center gap-2.5">
+          <div class="p-1.5 bg-gray-800 text-gray-400 rounded-md border border-gray-700">
+            <i data-lucide="git-commit" class="w-4 h-4"></i>
+          </div>
+          <h3 class="text-sm font-bold text-white tracking-tight">Decision Tree Classifier (Baseline)</h3>
+        </div>
+        <span class="status-badge bg-gray-800 text-gray-400 border border-gray-700">Benchmark</span>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4 mb-5">
+        <div class="bg-gray-900/40 border border-gray-800/60 rounded-lg p-3 text-center">
+          <div class="text-[10px] uppercase tracking-wider text-gray-500 font-semibold mb-1">ROC-AUC Validation</div>
+          <div id="dt-roc" class="text-2xl font-black text-gray-400 font-mono">--.---</div>
+        </div>
+        <div class="bg-gray-900/40 border border-gray-800/60 rounded-lg p-3 text-center">
+          <div class="text-[10px] uppercase tracking-wider text-gray-500 font-semibold mb-1">Global Accuracy</div>
+          <div id="dt-acc" class="text-2xl font-black text-gray-400 font-mono">--.--%</div>
+        </div>
+      </div>
+
+      <table class="w-full text-xs font-mono">
+        <thead>
+          <tr class="text-gray-500 border-b border-gray-800 text-left bg-gray-900/20">
+            <th class="py-2 px-3 font-semibold uppercase tracking-wider text-[10px]">Classification Vector</th>
+            <th class="py-2 px-3 font-semibold uppercase tracking-wider text-[10px]">Precision</th>
+            <th class="py-2 px-3 font-semibold uppercase tracking-wider text-[10px]">Recall</th>
+            <th class="py-2 px-3 font-semibold uppercase tracking-wider text-[10px]">F1-Score</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-800/40 text-gray-300">
+          <tr class="electro-row transition-colors">
+            <td class="py-2.5 px-3 text-white font-semibold font-sans">Weighted Avg.</td>
+            <td id="dt-precision" class="py-2.5 px-3">0.0000</td>
+            <td id="dt-recall" class="py-2.5 px-3">0.0000</td>
+            <td id="dt-f1" class="py-2.5 px-3">0.0000</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+
+      <!-- REPORT EXPORT -->
+      <div class="bg-slatepanel rounded-xl border border-gray-800 p-4 no-print">
+        <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+          <h2 class="text-xs font-semibold tracking-wider text-gray-400 flex items-center gap-2 uppercase">
+            <i data-lucide="file-text" class="w-3.5 h-3.5 text-cyanaccent"></i> Official Clinical Report Export
+          </h2>
+          <div class="flex gap-2 flex-wrap">
+            <button id="previewReportBtn" class="px-3 py-1.5 text-xs font-medium rounded-md bg-cyanaccent/10 border border-cyanaccent/40 text-cyanaccent hover:bg-cyanaccent/20 transition flex items-center gap-1.5">
+              <i data-lucide="eye" class="w-3.5 h-3.5"></i> Preview Report
+            </button>
+            <button id="exportCsvBtn" class="px-3 py-1.5 text-xs font-medium rounded-md bg-gray-800 border border-gray-700 text-gray-300 hover:bg-gray-700 transition flex items-center gap-1.5">
+              <i data-lucide="download" class="w-3.5 h-3.5"></i> CSV
+            </button>
+            <button id="exportJsonBtn" class="px-3 py-1.5 text-xs font-medium rounded-md bg-gray-800 border border-gray-700 text-gray-300 hover:bg-gray-700 transition flex items-center gap-1.5">
+              <i data-lucide="code" class="w-3.5 h-3.5"></i> JSON
+            </button>
+          </div>
+        </div>
+        <p class="text-[11px] text-gray-500">Chain-of-custody compliant report with official letterhead, certification block, formal summary matrix, and AI disclaimer. Print preview for PDF export.</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- ==================== MODALS ==================== -->
+
+  <!-- New Case Modal -->
+  <div id="newCaseModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4 no-print">
+    <div class="bg-slatepanel border border-gray-700 rounded-xl w-full max-w-lg p-5 fade-in-up">
+      <div class="flex justify-between items-center mb-5">
+        <h3 class="text-sm font-bold text-white flex items-center gap-2">
+          <i data-lucide="folder-plus" class="w-4 h-4 text-cyanaccent"></i> Initialize New Forensic Case
+        </h3>
+        <button id="closeNewCaseModal" class="text-gray-500 hover:text-gray-300"><i data-lucide="x" class="w-4 h-4"></i></button>
+      </div>
+      <div class="space-y-3">
+        <div>
+          <label class="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Case ID (Auto-generated)</label>
+          <input type="text" id="newCaseId" readonly class="w-full mt-1 px-3 py-2 text-xs bg-gray-900 border border-gray-700 rounded-md text-cyanaccent font-mono">
+        </div>
+        <div>
+          <label class="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Analyst Name</label>
+          <input type="text" id="newAnalystName" placeholder="e.g. Dr. R. Chen" class="w-full mt-1 px-3 py-2 text-xs bg-gray-900 border border-gray-700 rounded-md text-gray-200 placeholder-gray-600 focus:outline-none focus:border-cyanaccent/60">
+        </div>
+        <div>
+          <label class="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Population Group</label>
+          <select id="newPopulation" class="w-full mt-1 px-3 py-2 text-xs bg-gray-900 border border-gray-700 rounded-md text-gray-200 focus:outline-none focus:border-cyanaccent/60">
+            <option value="Caucasian">Caucasian</option>
+            <option value="African American">African American</option>
+            <option value="Hispanic">Hispanic</option>
+            <option value="Asian">Asian</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Case Notes</label>
+          <textarea id="newCaseNotes" rows="3" placeholder="Optional case observations, custody notes..." class="w-full mt-1 px-3 py-2 text-xs bg-gray-900 border border-gray-700 rounded-md text-gray-200 placeholder-gray-600 focus:outline-none focus:border-cyanaccent/60 resize-none"></textarea>
+        </div>
+      </div>
+      <div class="flex justify-end mt-5 gap-2">
+        <button id="cancelNewCase" class="px-4 py-1.5 text-xs rounded-md bg-gray-800 text-gray-300 hover:bg-gray-700 transition">Cancel</button>
+        <button id="initTriadBtn" class="px-4 py-1.5 text-xs rounded-md bg-cyanaccent text-obsidian font-bold hover:bg-cyanaccent/80 transition flex items-center gap-1.5">
+          <i data-lucide="layout-grid" class="w-3.5 h-3.5"></i> Initialize Triad Grid
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CSV Import Modal -->
+  <div id="csvModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4 no-print">
+    <div class="bg-slatepanel border border-gray-700 rounded-xl w-full max-w-lg p-5 fade-in-up">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-sm font-bold text-white flex items-center gap-2">
+          <i data-lucide="upload" class="w-4 h-4 text-cyanaccent"></i> CSV Data Ingestion Pipeline
+        </h3>
+        <button id="closeCsvModal" class="text-gray-500 hover:text-gray-300"><i data-lucide="x" class="w-4 h-4"></i></button>
+      </div>
+      <div id="dropZone" class="border-2 border-dashed border-gray-700 rounded-lg p-8 text-center mb-3 transition hover:border-cyanaccent/60 cursor-pointer">
+        <i data-lucide="file-spreadsheet" class="w-10 h-10 text-gray-600 mx-auto mb-3"></i>
+        <p class="text-sm text-gray-400 mb-1">Drag & drop CSV file here</p>
+        <p class="text-[10px] text-gray-600">or click to browse</p>
+        <input type="file" id="csvFileInput" accept=".csv" class="hidden">
+      </div>
+      <div class="bg-gray-900 p-3 rounded-md text-[10px] font-mono text-gray-500 border border-gray-800 mb-3">
+        <div class="text-gray-400 mb-1 font-semibold">Expected Column Schema:</div>
+        Locus,M_Allele1,M_Allele2,C_Allele1,C_Allele2,AF_Allele1,AF_Allele2<br>
+        CSF1PO,10,11,11,12,12,12<br>
+        FGA,21,24,24,26,26,27
+      </div>
+      <div id="csvPreview" class="hidden text-[10px] text-emerald-400 mb-3 font-mono"></div>
+      <div class="flex justify-end gap-2">
+        <button id="cancelCsvBtn" class="px-4 py-1.5 text-xs rounded-md bg-gray-800 text-gray-300 hover:bg-gray-700 transition">Cancel</button>
+        <button id="simulateImportBtn" class="px-4 py-1.5 text-xs rounded-md bg-cyanaccent text-obsidian font-bold hover:bg-cyanaccent/80 transition">Import Data</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Report Preview Modal -->
+  <div id="reportModal" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-start justify-center hidden p-4 overflow-y-auto">
+    <div class="bg-slatepanel border border-gray-700 rounded-xl w-full max-w-4xl my-8 fade-in-up">
+      <div class="flex justify-between items-center p-4 border-b border-gray-800 no-print sticky top-0 bg-slatepanel z-10 rounded-t-xl">
+        <h3 class="text-sm font-bold text-white flex items-center gap-2">
+          <i data-lucide="file-text" class="w-4 h-4 text-cyanaccent"></i> Official Report Preview
+        </h3>
+        <div class="flex gap-2">
+          <button id="printReportBtn" class="px-3 py-1.5 text-xs bg-cyanaccent text-obsidian rounded-md font-semibold hover:bg-cyanaccent/80 transition flex items-center gap-1.5">
+            <i data-lucide="printer" class="w-3.5 h-3.5"></i> Print / Save PDF
+          </button>
+          <button id="closeReportModal" class="text-gray-500 hover:text-gray-300 p-1.5"><i data-lucide="x" class="w-4 h-4"></i></button>
+        </div>
+      </div>
+      <div id="reportContent" class="p-8 bg-white text-black">
+        <!-- Injected by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== JAVASCRIPT ==================== -->
+  
+<script>
+
+function checkLocusCompatibility(mStr, fStr, cStr) {
+  if (
+    mStr == null || fStr == null || cStr == null ||
+    !String(mStr).trim() ||
+    !String(fStr).trim() ||
+    !String(cStr).trim()
+  ) {
+    return 0;
+  }
+
+  const m = new Set(String(mStr).split("/"));
+  const f = new Set(String(fStr).split("/"));
+  const c = new Set(String(cStr).split("/"));
+
+  for (const mAllele of m) {
+    const remainingChild = new Set(c);
+
+    if (remainingChild.has(mAllele)) {
+      remainingChild.delete(mAllele);
+
+      if (remainingChild.size === 0) {
+        if ([...c].some(allele => f.has(allele))) {
+          return 1;
+        }
+      } else {
+        const fAllele = [...remainingChild][0];
+
+        if (f.has(fAllele)) {
+          return 1;
+        }
+      }
+    }
+  }
+
+  return 0;
+}
+
+function buildONNXFeatures(caseObj, combinedLR, featureLoci) {
+  const compatibility = featureLoci.map(locus => {
+    const data = caseObj.loci?.[locus];
+
+    if (!data) {
+      throw new Error(`Missing input data for locus: ${locus}`);
+    }
+
+    const genotype = role => {
+      const alleles = data[role];
+
+      if (!Array.isArray(alleles) || alleles.length !== 2 ||
+          alleles.some(a => a == null || String(a).trim() === "")) {
+        throw new Error(`Enter both alleles for ${role} at ${locus}`);
+      }
+
+      return alleles.map(a => String(a).trim()).join("/");
+    };
+
+    return checkLocusCompatibility(
+      genotype("mother"),
+      genotype("allegedFather"),
+      genotype("child")
+    );
+  });
+
+  const totalCompatible = compatibility.reduce((sum, value) => sum + value, 0);
+
+  if (!Number.isFinite(combinedLR) || combinedLR < 0) {
+    throw new Error("Combined likelihood ratio must be finite and non-negative.");
+  }
+
+  // Match Python's np.log10(combined_lr.clip(lower=np.finfo(float).tiny))
+  const safeLR = Math.max(combinedLR, 2.2250738585072014e-308);
+  const logCombinedLR = Math.log10(safeLR);
+
+  return [
+    ...compatibility,
+    totalCompatible,
+    logCombinedLR
+  ];
+}
+
+  (function() {
+    'use strict';
+    let modelSession = null;
+
+    async function loadONNXModel() {
+      modelSession = await ort.InferenceSession.create(
+        "./model.onnx",
+        { executionProviders: ["wasm"] }
+      );
+
+      console.log("ONNX model loaded:", {
+        inputs: modelSession.inputNames,
+        outputs: modelSession.outputNames
+      });
+    }
+
+    loadONNXModel().catch(error => {
+      console.error("Failed to load ONNX model:", error);
+    });
+    // ============================================================
+    // 1. CONSTANTS & POPULATION FREQUENCIES
+    // ============================================================
+    const CODIS_20 = [
+      "CSF1PO","D3S1358","D5S818","D7S820","D8S1179","D13S317","D16S539",
+      "D18S51","D21S11","FGA","TH01","TPOX","vWA","D1S1656","D2S441",
+      "D2S1338","D10S1248","D12S391","D19S433","D22S1045"
+    ];
+
+    // Standard STR mutation rates per locus (Butler et al. / NIST forensic standards)
+    const MUTATION_RATE = {
+      "CSF1PO": 0.0016, "D3S1358": 0.0012, "D5S818": 0.0023, "D7S820": 0.0013,
+      "D8S1179": 0.0014, "D13S317": 0.0014, "D16S539": 0.0011, "D18S51": 0.0022,
+      "D21S11": 0.0019, "FGA": 0.0028, "TH01": 0.0001, "TPOX": 0.0001,
+      "vWA": 0.0017, "D1S1656": 0.0018, "D2S441": 0.0012, "D2S1338": 0.0015,
+      "D10S1248": 0.0012, "D12S391": 0.0020, "D19S433": 0.0011, "D22S1045": 0.0008
+    };
+
+    // Validated Caucasian population STR allele frequencies loaded from allele_frequencies.json
+    const BASE_FREQ = {
+      "CSF1PO": {
+            "9": 0.02,
+            "10": 0.08,
+            "11": 0.3,
+            "12": 0.35,
+            "13": 0.2,
+            "14": 0.05
+      },
+      "D3S1358": {
+            "12": 0.03,
+            "13": 0.05,
+            "14": 0.15,
+            "15": 0.3,
+            "16": 0.25,
+            "17": 0.15,
+            "18": 0.07
+      },
+      "D5S818": {
+            "8": 0.02,
+            "9": 0.08,
+            "10": 0.15,
+            "11": 0.35,
+            "12": 0.25,
+            "13": 0.12,
+            "14": 0.03
+      },
+      "D7S820": {
+            "8": 0.02,
+            "9": 0.06,
+            "10": 0.15,
+            "11": 0.28,
+            "12": 0.3,
+            "13": 0.14,
+            "14": 0.04,
+            "15": 0.01
+      },
+      "D8S1179": {
+            "10": 0.02,
+            "11": 0.08,
+            "12": 0.15,
+            "13": 0.32,
+            "14": 0.25,
+            "15": 0.13,
+            "16": 0.04,
+            "17": 0.01
+      },
+      "D13S317": {
+            "8": 0.03,
+            "9": 0.1,
+            "10": 0.15,
+            "11": 0.3,
+            "12": 0.25,
+            "13": 0.12,
+            "14": 0.04,
+            "15": 0.01
+      },
+      "D16S539": {
+            "8": 0.02,
+            "9": 0.08,
+            "10": 0.12,
+            "11": 0.32,
+            "12": 0.28,
+            "13": 0.13,
+            "14": 0.04,
+            "15": 0.01
+      },
+      "D18S51": {
+            "12": 0.02,
+            "13": 0.06,
+            "14": 0.14,
+            "15": 0.25,
+            "16": 0.22,
+            "17": 0.18,
+            "18": 0.08,
+            "19": 0.04,
+            "20": 0.01
+      },
+      "D21S11": {
+            "27": 0.03,
+            "28": 0.12,
+            "29": 0.2,
+            "30": 0.28,
+            "31": 0.22,
+            "32": 0.1,
+            "33": 0.04,
+            "34": 0.01
+      },
+      "FGA": {
+            "19": 0.02,
+            "20": 0.05,
+            "21": 0.12,
+            "22": 0.2,
+            "23": 0.25,
+            "24": 0.2,
+            "25": 0.1,
+            "26": 0.05,
+            "27": 0.01
+      },
+      "TH01": {
+            "6": 0.22,
+            "7": 0.18,
+            "8": 0.12,
+            "9": 0.25,
+            "10": 0.23
+      },
+      "TPOX": {
+            "8": 0.52,
+            "9": 0.1,
+            "10": 0.08,
+            "11": 0.22,
+            "12": 0.06,
+            "13": 0.02
+      },
+      "vWA": {
+            "14": 0.1,
+            "15": 0.25,
+            "16": 0.28,
+            "17": 0.2,
+            "18": 0.12,
+            "19": 0.04,
+            "20": 0.01
+      },
+      "D1S1656": {
+            "12": 0.03,
+            "13": 0.1,
+            "14": 0.22,
+            "15": 0.3,
+            "16": 0.2,
+            "17": 0.1,
+            "18": 0.04,
+            "19": 0.01
+      },
+      "D2S441": {
+            "10": 0.08,
+            "11": 0.25,
+            "12": 0.35,
+            "13": 0.22,
+            "14": 0.08,
+            "15": 0.02
+      },
+      "D2S1338": {
+            "17": 0.03,
+            "18": 0.08,
+            "19": 0.2,
+            "20": 0.28,
+            "21": 0.22,
+            "22": 0.12,
+            "23": 0.05,
+            "24": 0.02
+      },
+      "D10S1248": {
+            "10": 0.05,
+            "11": 0.15,
+            "12": 0.35,
+            "13": 0.28,
+            "14": 0.12,
+            "15": 0.04,
+            "16": 0.01
+      },
+      "D12S391": {
+            "17": 0.04,
+            "18": 0.12,
+            "19": 0.26,
+            "20": 0.3,
+            "21": 0.18,
+            "22": 0.07,
+            "23": 0.02,
+            "24": 0.01
+      },
+      "D19S433": {
+            "12": 0.05,
+            "13": 0.22,
+            "14": 0.35,
+            "15": 0.22,
+            "16": 0.12,
+            "17": 0.03,
+            "18": 0.01
+      },
+      "D22S1045": {
+            "11": 0.04,
+            "12": 0.12,
+            "13": 0.25,
+            "14": 0.32,
+            "15": 0.2,
+            "16": 0.05,
+            "17": 0.02
+      }
+};
+
+    const DEFAULT_FREQ = 0.10;
+
+    // ============================================================
+    // 2. ML BACKEND CONFIGURATION & INTEGRATION CONTRACT
+    // ============================================================
+    // Modify these parameters to connect to your ML Backend (FastAPI / Flask / Django)
+    const ML_CONFIG = {
+      // Base URL where your Python ML server runs
+      apiBase: 'http://localhost:8000',
+      // API endpoints
+      endpoints: {
+        analyze: '/ml/analyze-paternity',
+        version: '/ml/version',
+        downloadCsv: '/download-csv'
+      },
+      // Enable querying the ML backend on comparison
+      enabled: true,
+      // Timeout in milliseconds before falling back to the local STR engine
+      timeoutMs: 2500
+    };
+
+    // State
+    let cases = [];
+    let activeCaseId = null;
+    let analysisResults = null;
+    let locusChartInstance = null;
+    let currentPopulation = 'Caucasian';
+    let currentAnalyst = 'Unassigned';
+    let currentCaseNotes = '';
+    let demoCycleIndex = 0;
+    let selectedCsvFile = null;
+
+    // ============================================================
+    // 3. UTILITIES & MATH
+    // ============================================================
+    function $(id) { return document.getElementById(id); }
+
+    function generateCaseId() {
+      const year = new Date().getFullYear();
+      const seq = String(cases.length + 1).padStart(4, '0');
+      return `CASE-${year}-${seq}`;
+    }
+
+    function alleleToNumeric(allele) {
+      return parseFloat(allele);
+    }
+
+    function alleleFrequency(locus, allele) {
+      const freqMap = BASE_FREQ[locus] || {};
+      const key = String(allele);
+      return freqMap[key] !== undefined ? freqMap[key] : DEFAULT_FREQ;
+    }
+
+    function randomAllele(locus) {
+      const freqMap = BASE_FREQ[locus] || {};
+      const alleles = Object.keys(freqMap);
+      if (alleles.length === 0) {
+        return String(Math.floor(Math.random() * 12) + 10);
+      }
+      const weights = alleles.map(a => freqMap[a]);
+      const total = weights.reduce((s, w) => s + w, 0);
+      let r = Math.random() * total;
+      for (let i = 0; i < alleles.length; i++) {
+        r -= weights[i];
+        if (r <= 0) return alleles[i];
+      }
+      return alleles[alleles.length - 1];
+    }
+
+    function formatLR(lr) {
+      if (lr === null || lr === undefined || !Number.isFinite(lr)) return '0.000e+0';
+      if (lr === 0) return '0.000e+0';
+      if (lr >= 1e5 || lr <= 1e-3) {
+        return lr.toExponential(3);
+      }
+      return lr.toLocaleString(undefined, { maximumFractionDigits: 2 });
+    }
+
+    function calculatePosteriorProbability(lr, prior = 0.5) {
+      if (!Number.isFinite(lr) || lr <= 0) return 0.0;
+      if (lr > 1e14) return 99.999999;
+      const w = (lr * prior) / ((lr * prior) + (1.0 - prior));
+      return w * 100.0;
+    }
+
+    // ============================================================
+    // 4. ML FEATURE EXTRACTION & BACKEND API CLIENT
+    // ============================================================
+    /**
+     * Extracts ML feature vector matching preproduction.py
+     * Features: compat_<locus> (1 or 0), total_compatible_loci, log_combined_lr, combined_lr
+     */
+    function extractMLFeatures(lociResults, totalLR) {
+      const features = {};
+      let totalCompat = 0;
+
+      CODIS_20.forEach(locus => {
+        const r = lociResults.find(item => item.locus === locus);
+        const isCompat = r && (r.status === 'Match' || r.status === 'Mutation') ? 1 : 0;
+        features[`compat_${locus.toLowerCase()}`] = isCompat;
+        totalCompat += isCompat;
+      });
+
+      features['total_compatible_loci'] = totalCompat;
+      features['combined_lr'] = totalLR;
+      features['log_combined_lr'] = Math.log10(Math.max(totalLR, 1e-300));
+
+      return features;
+    }
+
+    /**
+     * Sends structured case data and feature vector to the ML Backend
+     */
+    async function queryMLBackend(caseObj, localResults) {
+      if (!ML_CONFIG.enabled) return null;
+
+      const payload = {
+        case_id: caseObj.id,
+        population: caseObj.population || 'Caucasian',
+        analyst: caseObj.analyst || 'Unassigned',
+        loci_data: {},
+        features: extractMLFeatures(localResults.loci, localResults.cpi)
+      };
+
+      CODIS_20.forEach(locus => {
+        if (caseObj.loci && caseObj.loci[locus]) {
+          const { mother, child, allegedFather } = caseObj.loci[locus];
+          payload.loci_data[locus] = {
+            mother: (mother || []).filter(a => a !== ''),
+            child: (child || []).filter(a => a !== ''),
+            allegedFather: (allegedFather || []).filter(a => a !== '')
+          };
+        } else {
+          payload.loci_data[locus] = { mother: [], child: [], allegedFather: [] };
+        }
+      });
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), ML_CONFIG.timeoutMs);
+
+      try {
+        const response = await fetch(`${ML_CONFIG.apiBase}${ML_CONFIG.endpoints.analyze}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        console.log('✓ ML Backend Response:', data);
+        return data;
+      } catch (err) {
+        clearTimeout(timeoutId);
+        throw err;
+      }
+    }
+
+    function updateBackendStatus(connected, modelInfo) {
+      const dot = $('backendStatusDot');
+      const text = $('backendStatusText');
+      const badge = $('mlSourceBadge');
+
+      if (connected) {
+        if (dot) dot.className = 'w-1.5 h-1.5 rounded-full bg-cyanaccent animate-pulse';
+        if (text) text.textContent = `ML Pipeline: Connected (${modelInfo || 'Random Forest'})`;
+        if (badge) {
+          badge.textContent = 'ML Backend Active';
+          badge.className = 'text-[9px] px-1.5 py-0.5 rounded bg-cyanaccent/20 text-cyanaccent border border-cyanaccent/40 font-mono';
+        }
+      } else {
+        if (dot) dot.className = 'w-1.5 h-1.5 rounded-full bg-emerald-400';
+        if (text) text.textContent = 'ML Pipeline: Ready (Local Core)';
+        if (badge) {
+          badge.textContent = 'Local Forensic Core';
+          badge.className = 'text-[9px] px-1.5 py-0.5 rounded bg-gray-800 text-gray-400 border border-gray-700 font-mono';
+        }
+      }
+    }
+
+    // ============================================================
+    // 5. FORENSIC STR ANALYSIS ENGINE (Validated Rule Core)
+    // ============================================================
+    function checkMutation(allegedFather, targetAllele) {
+      const targetNum = parseFloat(targetAllele);
+      if (isNaN(targetNum)) return null;
+
+      for (const af of allegedFather) {
+        const afNum = parseFloat(af);
+        if (isNaN(afNum)) continue;
+        const diff = Math.round(Math.abs(afNum - targetNum) * 10) / 10;
+        if (diff === 1 || diff === 0.2) {
+          return {
+            allele: af,
+            distance: (afNum - targetNum).toFixed(diff === 0.2 ? 1 : 0)
+          };
+        }
+      }
+      return null;
+    }
+
+    /**
+     * Evaluates a single CODIS locus with rigorous Mendelian inheritance checks
+     */
+    function evaluateLocus(locus, mother, child, allegedFather) {
+      const m1 = String(mother[0] || '').trim();
+      const m2 = String(mother[1] || '').trim();
+      const c1 = String(child[0] || '').trim();
+      const c2 = String(child[1] || '').trim();
+      const f1 = String(allegedFather[0] || '').trim();
+      const f2 = String(allegedFather[1] || '').trim();
+
+      if (!c1 || !c2 || !m1 || !m2 || !f1 || !f2) {
+        return {
+          locus,
+          mother: [m1, m2].filter(Boolean).join('/'),
+          child: [c1, c2].filter(Boolean).join('/'),
+          allegedFather: [f1, f2].filter(Boolean).join('/'),
+          obligate: '—',
+          pi: 1.0,
+          status: 'Incomplete',
+          note: 'Incomplete locus data.',
+          distance: null
+        };
+      }
+
+      const mSet = new Set([m1, m2]);
+      const fSet = new Set([f1, f2]);
+
+      const c1InM = mSet.has(c1);
+      const c2InM = mSet.has(c2);
+      const c1InF = fSet.has(c1);
+      const c2InF = fSet.has(c2);
+
+      let status = 'Match';
+      let obligate = '';
+      let pi = 1.0;
+      let note = '';
+      let distance = null;
+
+      const mutRate = MUTATION_RATE[locus] || 0.003;
+
+      // Case 1: Mother has c1 only -> c2 is obligate paternal
+      if (c1InM && !c2InM) {
+        obligate = c2;
+        if (c2InF) {
+          status = 'Match';
+          const freq = alleleFrequency(locus, c2);
+          pi = (f1 === f2 ? 1.0 : 0.5) / Math.max(freq, 1e-4);
+        } else {
+          const mut = checkMutation([f1, f2], c2);
+          if (mut) {
+            status = 'Mutation';
+            distance = mut.distance;
+            const freq = alleleFrequency(locus, c2);
+            pi = (mutRate * 0.5) / Math.max(freq, 1e-4);
+            note = `Single-step STR mutation: obligate ${c2}, AF allele ${mut.allele} (Δ${distance}). Reduced PI applied.`;
+          } else {
+            status = 'Exclusion';
+            pi = 1e-3;
+            note = `Obligate paternal allele ${c2} absent in alleged father. Direct exclusion at locus ${locus}.`;
+          }
+        }
+      }
+      // Case 2: Mother has c2 only -> c1 is obligate paternal
+      else if (c2InM && !c1InM) {
+        obligate = c1;
+        if (c1InF) {
+          status = 'Match';
+          const freq = alleleFrequency(locus, c1);
+          pi = (f1 === f2 ? 1.0 : 0.5) / Math.max(freq, 1e-4);
+        } else {
+          const mut = checkMutation([f1, f2], c1);
+          if (mut) {
+            status = 'Mutation';
+            distance = mut.distance;
+            const freq = alleleFrequency(locus, c1);
+            pi = (mutRate * 0.5) / Math.max(freq, 1e-4);
+            note = `Single-step STR mutation: obligate ${c1}, AF allele ${mut.allele} (Δ${distance}). Reduced PI applied.`;
+          } else {
+            status = 'Exclusion';
+            pi = 1e-3;
+            note = `Obligate paternal allele ${c1} absent in alleged father. Direct exclusion at locus ${locus}.`;
+          }
+        }
+      }
+      // Case 3: Mother has both c1 and c2 (shared alleles)
+      else if (c1InM && c2InM) {
+        if (c1 === c2) {
+          obligate = c1;
+          if (c1InF) {
+            status = 'Match';
+            const freq = alleleFrequency(locus, c1);
+            pi = (f1 === f2 ? 1.0 : 0.5) / Math.max(freq, 1e-4);
+          } else {
+            const mut = checkMutation([f1, f2], c1);
+            if (mut) {
+              status = 'Mutation';
+              distance = mut.distance;
+              const freq = alleleFrequency(locus, c1);
+              pi = (mutRate * 0.5) / Math.max(freq, 1e-4);
+              note = `Single-step STR mutation: obligate ${c1}, AF allele ${mut.allele} (Δ${distance}).`;
+            } else {
+              status = 'Exclusion';
+              pi = 1e-3;
+              note = `Obligate paternal allele ${c1} absent in alleged father. Direct exclusion at locus ${locus}.`;
+            }
+          }
+        } else {
+          if (c1InF && c2InF) {
+            obligate = `${c1} or ${c2}`;
+            status = 'Match';
+            const freq1 = alleleFrequency(locus, c1);
+            const freq2 = alleleFrequency(locus, c2);
+            pi = (freq1 + freq2) / (4.0 * Math.max(freq1 * freq2, 1e-6));
+          } else if (c1InF) {
+            obligate = c1;
+            status = 'Match';
+            const freq = alleleFrequency(locus, c1);
+            pi = (f1 === f2 ? 1.0 : 0.5) / Math.max(freq, 1e-4);
+          } else if (c2InF) {
+            obligate = c2;
+            status = 'Match';
+            const freq = alleleFrequency(locus, c2);
+            pi = (f1 === f2 ? 1.0 : 0.5) / Math.max(freq, 1e-4);
+          } else {
+            const mut1 = checkMutation([f1, f2], c1);
+            const mut2 = checkMutation([f1, f2], c2);
+            const mut = mut1 || mut2;
+            if (mut) {
+              status = 'Mutation';
+              distance = mut.distance;
+              obligate = mut === mut1 ? c1 : c2;
+              const freq = alleleFrequency(locus, obligate);
+              pi = (mutRate * 0.5) / Math.max(freq, 1e-4);
+              note = `Single-step STR mutation: obligate ${obligate}, AF allele ${mut.allele} (Δ${distance}).`;
+            } else {
+              status = 'Exclusion';
+              obligate = `${c1} or ${c2}`;
+              pi = 1e-3;
+              note = `Neither candidate paternal allele (${obligate}) present in alleged father. Direct exclusion at locus ${locus}.`;
+            }
+          }
+        }
+      }
+      // Case 4: Neither allele present in mother (maternal exclusion)
+      else {
+        obligate = `${c1}/${c2}`;
+        status = 'Exclusion';
+        pi = 1e-3;
+        note = 'Maternal incompatibility: Neither child allele present in maternal profile.';
+      }
+
+      pi = Math.max(pi, 1e-300);
+
+      return {
+        locus,
+        mother: `${m1}/${m2}`,
+        child: `${c1}/${c2}`,
+        allegedFather: `${f1}/${f2}`,
+        obligate,
+        pi,
+        status,
+        note,
+        distance
+      };
+    }
+
+    /**
+     * Calculates the full 20-locus STR forensics metrics
+     */
+    function calculateForensicMetrics(caseObj) {
+      const lociData = caseObj.loci;
+      if (!lociData) return null;
+
+      let totalLR = 1.0;
+      let matches = 0, mutations = 0, exclusions = 0;
+      const exclusionLoci = [];
+      const mutationLoci = [];
+      const results = [];
+
+      CODIS_20.forEach(locus => {
+        const data = lociData[locus];
+        if (!data) return;
+
+        const evaluated = evaluateLocus(locus, data.mother, data.child, data.allegedFather);
+        results.push(evaluated);
+
+        if (evaluated.status === 'Match') {
+          matches++;
+          totalLR *= evaluated.pi;
+        } else if (evaluated.status === 'Mutation') {
+          mutations++;
+          mutationLoci.push({
+            locus,
+            obligate: evaluated.obligate,
+            mutationAllele: (evaluated.note.match(/AF allele ([^ (]+)/) || [])[1] || 'variant',
+            distance: evaluated.distance
+          });
+          totalLR *= evaluated.pi;
+        } else if (evaluated.status === 'Exclusion') {
+          exclusions++;
+          exclusionLoci.push({
+            locus,
+            obligate: evaluated.obligate,
+            af: data.allegedFather
+          });
+          totalLR *= evaluated.pi;
+        }
+      });
+
+      totalLR = Math.max(totalLR, 1e-300);
+
+      // Forensic parentage standards
+      let verdict = 'INCONCLUSIVE';
+      if (exclusions >= 2 || totalLR < 0.01) {
+        verdict = 'EXCLUSION';
+      } else if (exclusions === 0 && mutations === 0 && totalLR >= 10000) {
+        verdict = 'STRONG INCLUSION';
+      } else if (mutations > 0 || exclusions === 1) {
+        verdict = 'REVIEW REQUIRED';
+      } else if (totalLR >= 100) {
+        verdict = 'STRONG INCLUSION';
+      }
+
+      const posteriorProbability = calculatePosteriorProbability(totalLR);
+
+      return {
+        loci: results,
+        cpi: totalLR,
+        matches,
+        mutations,
+        exclusions,
+        verdict,
+        totalLoci: results.length,
+        exclusionLoci,
+        mutationLoci,
+        posteriorProbability,
+        mlSource: 'Local Forensic Core'
+      };
+    }
+
+    // ============================================================
+    // 6. MAIN CONTROLLER & ANALYSIS ORCHESTRATION
+    // ============================================================
+    async function performAnalysis() {
+      const caseObj = cases.find(c => c.id === activeCaseId);
+      if (!caseObj || !caseObj.loci) return;
+
+      // Harvest inputs from DOM into case object
+      document.querySelectorAll('#lociInputGrid [data-locus]').forEach(row => {
+        const locus = row.dataset.locus;
+        const inputs = row.querySelectorAll('input');
+        if (!caseObj.loci[locus]) {
+          caseObj.loci[locus] = { mother: ['', ''], child: ['', ''], allegedFather: ['', ''] };
+        }
+        inputs.forEach(input => {
+          const role = input.dataset.role;
+          const idx = parseInt(input.dataset.idx, 10);
+          caseObj.loci[locus][role][idx] = input.value.trim();
+        });
+      });
+
+      const btn = $('runAnalysisBtn');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin mr-1"></i> Running Analysis...';
+        if (window.lucide && typeof window.lucide.createIcons === 'function') window.lucide.createIcons();
+      }
+  async function predictWithONNX(features) {
+  if (!modelSession) {
+    throw new Error("ONNX model is not loaded yet.");
+  }
+
+  if (!Array.isArray(features) || features.length !== 22) {
+    throw new Error("The model requires exactly 22 features.");
+  }
+
+  const tensor = new ort.Tensor(
+    "float32",
+    Float32Array.from(features),
+    [1, 22]
+  );
+
+  const outputs = await modelSession.run({
+    float_input: tensor
+  });
+
+  return {
+    label: outputs.label,
+    probabilities: outputs.probabilities
+  };
+}
+      try {
+        // 1. Calculate local validated forensic STR metrics
+        const localResults = calculateForensicMetrics(caseObj);
+        let mlPrediction = null;
+
+        if (modelSession && localResults) {
+          try {
+            const featureLoci = [
+              "CSF1PO", "D3S1358", "D5S818", "D7S820", "D8S1179",
+              "D13S317", "D16S539", "D18S51", "D21S11", "FGA",
+              "TH01", "TPOX", "vWA", "D1S1656", "D2S441",
+              "D2S1338", "D10S1248", "D12S391", "D19S433", "D22S1045"
+            ];
+
+            // Build the 20 compatibility features.
+            const compatibility = featureLoci.map(locus => {
+              const data = caseObj.loci[locus];
+
+              if (!data) {
+                throw new Error(`Missing STR data for ${locus}`);
+              }
+
+              const genotype = role => {
+                const alleles = data[role];
+
+                if (!Array.isArray(alleles) ||
+                    alleles.length !== 2 ||
+                    alleles.some(a => a == null || String(a).trim() === "")) {
+                  throw new Error(`Incomplete ${role} genotype at ${locus}`);
+                }
+
+                return alleles.map(a => String(a).trim()).join("/");
+              };
+
+              return checkLocusCompatibility(
+                genotype("mother"),
+                genotype("allegedFather"),
+                genotype("child")
+              );
+            });
+
+            const totalCompatible = compatibility.reduce(
+              (sum, value) => sum + value, 0
+            );
+
+            // Candidate mapping only: confirm cpi matches the training LR
+            // definition before relying on this feature.
+            const combinedLR = localResults.cpi;
+
+            if (!Number.isFinite(combinedLR) || combinedLR <= 0) {
+              throw new Error("Invalid combined LR for ML feature generation.");
+            }
+
+            const logCombinedLR = Math.log10(
+              Math.max(combinedLR, 2.2250738585072014e-308)
+            );
+
+            const features = [
+              ...compatibility,
+              totalCompatible,
+              logCombinedLR
+            ];
+
+            if (features.length !== 22) {
+              throw new Error(`Expected 22 features, got ${features.length}`);
+            }
+
+            const tensor = new ort.Tensor(
+              "float32",
+              Float32Array.from(features),
+              [1, 22]
+            );
+
+            const outputs = await modelSession.run({
+              float_input: tensor
+            });
+
+            mlPrediction = {
+              label: Array.from(outputs.label.data),
+              probabilities: outputs.probabilities
+                ? Array.from(outputs.probabilities.data)
+                : null
+            };
+
+            console.log("ONNX prediction:", mlPrediction);
+          } catch (error) {
+            console.error("ONNX prediction failed:", error);
+          }
+        }
+
+        let finalResults = localResults;
+        let mlConnected = false;
+        let mlModelInfo = '';
+
+       // 2. Query ML backend if enabled
+      if (ML_CONFIG.enabled) {
+        try {
+          const mlData = await queryMLBackend(caseObj, localResults);
+          if (mlData) {
+            mlConnected = true;
+            mlModelInfo = mlData.ml_model || mlData.model_name || 'Random Forest';
+            finalResults = {
+              ...localResults,
+              ...mlData,
+              ml: mlData,
+              mlSource: `ML Backend (${mlModelInfo})`
+            };
+            if (mlData.cpi !== undefined) finalResults.cpi = mlData.cpi;
+            if (mlData.verdict) finalResults.verdict = mlData.verdict;
+            if (mlData.matches !== undefined) finalResults.matches = mlData.matches;
+            if (mlData.mutations !== undefined) finalResults.mutations = mlData.mutations;
+            if (mlData.exclusions !== undefined) finalResults.exclusions = mlData.exclusions;
+          } else {
+            // ⚠️ ADD THIS: If queryMLBackend ran but returned nothing, it's effectively offline
+            mlConnected = false;
+          }
+        } catch (mlErr) {
+          console.log('ℹ ML Backend offline or unreachable at', ML_CONFIG.apiBase, '- using validated local STR engine.');
+          mlConnected = false; // Ensures it turns off
+        }
+      } else {
+        mlConnected = false; // If ML config is disabled
+      }
+        analysisResults = {
+          ...finalResults,
+          mlPrediction
+        };
+        updateBackendStatus(mlConnected, mlModelInfo);
+
+        // Update UI
+        renderAnalysisResults(finalResults, caseObj);
+
+      } catch (err) {
+        console.error('Analysis execution error:', err);
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<i data-lucide="play" class="w-3.5 h-3.5 mr-1"></i> Run Comparison';
+          if (window.lucide && typeof window.lucide.createIcons === 'function') window.lucide.createIcons();
+        }
+      }
+    }
+
+    function renderAnalysisResults(results, caseObj) {
+      if (!results) return;
+
+      const lrDisplay = formatLR(results.cpi);
+
+      // 1. Top banner
+      $('cpiValue').textContent = lrDisplay;
+      $('verdictBadge').textContent = results.verdict;
+      const verdictColors = {
+        'STRONG INCLUSION': 'text-emerald-400',
+        'EXCLUSION': 'text-crimsonex',
+        'REVIEW REQUIRED': 'text-ambermut',
+        'INCONCLUSIVE': 'text-gray-400'
+      };
+      $('verdictBadge').className = `font-bold ${verdictColors[results.verdict] || 'text-gray-400'}`;
+
+      // 2. Metrics cards
+      $('metricLoci').textContent = results.totalLoci || 20;
+      $('metricMatches').textContent = results.matches ?? 0;
+      $('metricMutations').textContent = results.mutations ?? 0;
+      $('metricExclusions').textContent = results.exclusions ?? 0;
+      $('metricCPI').textContent = lrDisplay;
+
+      // 3. Status badge on case
+      const caseStatus = results.verdict === 'STRONG INCLUSION' ? 'Completed' :
+                         results.verdict === 'EXCLUSION' ? 'Completed' : 'Review Required';
+      caseObj.status = caseStatus;
+      $('activeCaseStatus').textContent = caseStatus;
+      const statusColors = {
+        'Completed': 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30',
+        'Review Required': 'bg-amber-500/20 text-amber-400 border border-amber-500/30',
+        'Processing': 'bg-blue-500/20 text-blue-400 border border-blue-500/30',
+        'Draft': 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
+      };
+      $('activeCaseStatus').className = `status-badge ${statusColors[caseStatus] || statusColors['Draft']}`;
+
+      // 4. Render sub-panels
+      renderResultsTable(results);
+      renderChart(results);
+      renderMLNarrative(results, caseObj);
+      renderCaseList();
+    }
+
+    // ============================================================
+    // 7. RENDERING FUNCTIONS
+    // ============================================================
+    function renderCaseList() {
+      const searchInput = $('caseSearch');
+      const filterSelect = $('statusFilter');
+      const searchText = (searchInput ? searchInput.value : '').toLowerCase();
+      const statusFilter = filterSelect ? filterSelect.value : 'All';
+
+      const filtered = cases.filter(c => {
+        const matchText = c.id.toLowerCase().includes(searchText) ||
+                          (c.analyst || '').toLowerCase().includes(searchText) ||
+                          (c.population || '').toLowerCase().includes(searchText);
+        const matchStatus = statusFilter === 'All' || c.status === statusFilter;
+        return matchText && matchStatus;
+      });
+
+      $('caseCount').textContent = `${filtered.length} case${filtered.length !== 1 ? 's' : ''}`;
+
+      if (filtered.length === 0) {
+        $('caseListContainer').innerHTML = `
+          <div class="text-center py-8 text-gray-600 text-xs">
+            <i data-lucide="inbox" class="w-8 h-8 mx-auto mb-2 opacity-50"></i>
+            No cases match filter
+          </div>
+        `;
+        if (window.lucide && typeof window.lucide.createIcons === 'function') window.lucide.createIcons();
+        return;
+      }
+
+      $('caseListContainer').innerHTML = filtered.map(c => {
+        const statusColors = {
+          'Completed': 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30',
+          'Review Required': 'bg-amber-500/20 text-amber-400 border border-amber-500/30',
+          'Processing': 'bg-blue-500/20 text-blue-400 border border-blue-500/30',
+          'Draft': 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
+        };
+        const statusClass = statusColors[c.status] || statusColors['Draft'];
+        const isActive = c.id === activeCaseId;
+        return `
+          <div class="case-item p-3 rounded-lg border ${isActive ? 'border-cyanaccent/60 bg-cyanaccent/5' : 'border-gray-800 hover:border-gray-600'} cursor-pointer transition" data-case-id="${c.id}">
+            <div class="flex justify-between items-start mb-1">
+              <span class="font-mono text-xs font-bold text-white">${c.id}</span>
+              <span class="status-badge ${statusClass}">${c.status}</span>
+            </div>
+            <div class="text-[10px] text-gray-500 truncate">Analyst: ${c.analyst || '—'}</div>
+            <div class="text-[10px] text-gray-500 truncate">Population: ${c.population || '—'}</div>
+          </div>
+        `;
+      }).join('');
+
+      document.querySelectorAll('.case-item').forEach(el => {
+        el.addEventListener('click', () => {
+          selectCase(el.dataset.caseId);
+        });
+      });
+
+      if (window.lucide && typeof window.lucide.createIcons === 'function') window.lucide.createIcons();
+    }
+
+    function selectCase(caseId) {
+      activeCaseId = caseId;
+      const caseObj = cases.find(c => c.id === caseId);
+      if (!caseObj) return;
+
+      currentPopulation = caseObj.population || 'Caucasian';
+      currentAnalyst = caseObj.analyst || 'Unassigned';
+
+      $('activeCaseId').textContent = caseObj.id;
+      $('activeCaseStatus').textContent = caseObj.status;
+      const statusColors = {
+        'Completed': 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30',
+        'Review Required': 'bg-amber-500/20 text-amber-400 border border-amber-500/30',
+        'Processing': 'bg-blue-500/20 text-blue-400 border border-blue-500/30',
+        'Draft': 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
+      };
+      $('activeCaseStatus').className = `status-badge ${statusColors[caseObj.status] || statusColors['Draft']}`;
+      $('activeCaseMeta').textContent = `Analyst: ${caseObj.analyst || '—'} | Population: ${caseObj.population || '—'} | Notes: ${(caseObj.notes || 'None').substring(0, 60)}`;
+
+      if (caseObj.loci && Object.keys(caseObj.loci).length > 0) {
+        $('triadGridPlaceholder').classList.add('hidden');
+        $('triadGridContainer').classList.remove('hidden');
+        $('runAnalysisBtn').disabled = false;
+        renderLociInputs(caseObj.loci);
+        performAnalysis();
+      } else {
+        $('triadGridPlaceholder').classList.remove('hidden');
+        $('triadGridContainer').classList.add('hidden');
+        $('runAnalysisBtn').disabled = true;
+      }
+
+      renderCaseList();
+    }
+
+    function renderLociInputs(lociData) {
+      const grid = $('lociInputGrid');
+      grid.innerHTML = CODIS_20.map(locus => {
+        const d = lociData[locus] || { mother: ['', ''], child: ['', ''], allegedFather: ['', ''] };
+        return `
+          <div class="electro-row grid grid-cols-7 gap-2 items-center px-2 py-1 rounded border border-transparent hover:border-gray-800 transition" data-locus="${locus}">
+            <div class="col-span-1 text-cyan-400/90 font-bold text-[11px]">${locus}</div>
+            <div class="col-span-2 flex gap-1 justify-center">
+              <input type="text" value="${d.mother[0] || ''}" data-role="mother" data-idx="0" class="w-12 px-1 py-0.5 text-center bg-gray-900 border border-gray-700 rounded text-[11px] text-gray-200 focus:outline-none focus:border-cyan-500/60" maxlength="5">
+              <input type="text" value="${d.mother[1] || ''}" data-role="mother" data-idx="1" class="w-12 px-1 py-0.5 text-center bg-gray-900 border border-gray-700 rounded text-[11px] text-gray-200 focus:outline-none focus:border-cyan-500/60" maxlength="5">
+            </div>
+            <div class="col-span-2 flex gap-1 justify-center">
+              <input type="text" value="${d.child[0] || ''}" data-role="child" data-idx="0" class="w-12 px-1 py-0.5 text-center bg-gray-900 border border-gray-700 rounded text-[11px] text-gray-200 focus:outline-none focus:border-emerald-500/60" maxlength="5">
+              <input type="text" value="${d.child[1] || ''}" data-role="child" data-idx="1" class="w-12 px-1 py-0.5 text-center bg-gray-900 border border-gray-700 rounded text-[11px] text-gray-200 focus:outline-none focus:border-emerald-500/60" maxlength="5">
+            </div>
+            <div class="col-span-2 flex gap-1 justify-center">
+              <input type="text" value="${d.allegedFather[0] || ''}" data-role="allegedFather" data-idx="0" class="w-12 px-1 py-0.5 text-center bg-gray-900 border border-gray-700 rounded text-[11px] text-gray-200 focus:outline-none focus:border-amber-500/60" maxlength="5">
+              <input type="text" value="${d.allegedFather[1] || ''}" data-role="allegedFather" data-idx="1" class="w-12 px-1 py-0.5 text-center bg-gray-900 border border-gray-700 rounded text-[11px] text-gray-200 focus:outline-none focus:border-amber-500/60" maxlength="5">
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      grid.querySelectorAll('input').forEach(input => {
+        input.addEventListener('change', () => {
+          const row = input.closest('[data-locus]');
+          const locus = row.dataset.locus;
+          const role = input.dataset.role;
+          const idx = parseInt(input.dataset.idx, 10);
+
+          const caseObj = cases.find(c => c.id === activeCaseId);
+          if (!caseObj) return;
+
+          if (!caseObj.loci[locus]) {
+            caseObj.loci[locus] = { mother: ['', ''], child: ['', ''], allegedFather: ['', ''] };
+          }
+          caseObj.loci[locus][role][idx] = input.value.trim();
+        });
+      });
+    }
+
+    function renderResultsTable(results) {
+      const tbody = $('resultsTableBody');
+      if (!results || !results.loci || results.loci.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-gray-600 text-xs">No analysis results.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = results.loci.map(r => {
+        const statusColors = {
+          'Match': 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30',
+          'Mutation': 'bg-amber-500/20 text-amber-400 border border-amber-500/30',
+          'Exclusion': 'bg-red-500/20 text-red-400 border border-red-500/30',
+          'Incomplete': 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
+        };
+        const statusClass = statusColors[r.status] || statusColors['Match'];
+        const piDisplay = formatLR(r.pi);
+        const hasNote = r.note && r.note.length > 0;
+
+        return `
+          <tr class="electro-row border-b border-gray-800/50 hover:bg-gray-800/40 transition" data-locus="${r.locus}">
+            <td class="px-4 py-2.5 text-cyan-400/90 font-bold">${r.locus}</td>
+            <td class="px-3 py-2.5 text-center text-gray-300 font-mono">${r.mother}</td>
+            <td class="px-3 py-2.5 text-center text-gray-300 font-mono">${r.child}</td>
+            <td class="px-3 py-2.5 text-center text-gray-300 font-mono">${r.allegedFather}</td>
+            <td class="px-3 py-2.5 text-center text-cyanaccent font-bold font-mono">${r.obligate}</td>
+            <td class="px-3 py-2.5 text-center text-gray-200 font-mono">${piDisplay}</td>
+            <td class="px-3 py-2.5 text-center"><span class="status-badge ${statusClass}">${r.status}</span></td>
+            <td class="px-2 py-2.5 text-center">
+              ${hasNote ? `<button class="expand-drawer p-1 rounded hover:bg-gray-700/60 text-gray-400 hover:text-cyanaccent transition" data-locus="${r.locus}" title="Explain findings"><i data-lucide="chevron-down" class="w-3.5 h-3.5 inline"></i></button>` : '<span class="text-gray-700">—</span>'}
+            </td>
+          </tr>
+          ${hasNote ? `
+            <tr class="drawer-row hidden" data-drawer-for="${r.locus}">
+              <td colspan="8" class="px-5 py-3 bg-gray-900/80 border-b border-gray-800">
+                <div class="text-[11px] text-gray-300 leading-relaxed font-sans flex items-start gap-2">
+                  <span class="text-cyanaccent font-semibold flex-shrink-0">🧬 Finding:</span>
+                  <div>
+                    ${r.note}
+                    ${r.distance !== null ? `<span class="ml-2 inline-block px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono text-[10px]">Delta: ${r.distance} repeat unit(s)</span>` : ''}
+                  </div>
+                </div>
+              </td>
+            </tr>
+          ` : ''}
+        `;
+      }).join('');
+
+      // Drawer toggle listeners
+      tbody.querySelectorAll('.expand-drawer').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const locus = btn.dataset.locus;
+          const drawerRow = tbody.querySelector(`[data-drawer-for="${locus}"]`);
+          if (drawerRow) {
+            drawerRow.classList.toggle('hidden');
+            const icon = btn.querySelector('svg') || btn.querySelector('i');
+            if (icon) {
+              icon.style.transform = drawerRow.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
+              icon.style.transition = 'transform 0.2s';
+            }
+          }
+        });
+      });
+
+      if (window.lucide && typeof window.lucide.createIcons === 'function') window.lucide.createIcons();
+    }
+
+    function renderChart(results) {
+      const ctx = document.getElementById('locusChart');
+      if (!ctx || !results || !results.loci) return;
+
+      if (locusChartInstance) {
+        locusChartInstance.destroy();
+        locusChartInstance = null;
+      }
+
+      const labels = results.loci.map(r => r.locus);
+      const piData = results.loci.map(r => {
+        const safePi = Math.max(r.pi || 1e-4, 1e-4);
+        return Math.log10(safePi);
+      });
+
+      const upperThreshold = results.loci.map(() => 4); // log10(10,000) = 4
+      const lowerThreshold = results.loci.map(() => -2); // log10(0.01) = -2
+
+      const isLight = document.body.classList.contains('light-mode');
+      const gridColor = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.06)';
+      const textColor = isLight ? '#334155' : '#94a3b8';
+
+      locusChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: 'Locus PI (log₁₀)',
+              data: piData,
+              borderColor: '#00E5FF',
+              backgroundColor: 'rgba(0, 229, 255, 0.1)',
+              borderWidth: 2,
+              pointBackgroundColor: results.loci.map(r => {
+                if (r.status === 'Match') return '#34D399';
+                if (r.status === 'Mutation') return '#FFB347';
+                return '#FF4D6D';
+              }),
+              pointBorderColor: '#0A0E1A',
+              pointBorderWidth: 1,
+              pointRadius: 5,
+              pointHoverRadius: 7,
+              tension: 0.2,
+              fill: false,
+            },
+            {
+              label: 'Strong Inclusion Threshold (log₁₀ 10,000)',
+              data: upperThreshold,
+              borderColor: 'rgba(52, 211, 153, 0.6)',
+              borderWidth: 1.5,
+              borderDash: [6, 4],
+              pointRadius: 0,
+              fill: false,
+            },
+            {
+              label: 'Exclusion Threshold (log₁₀ 0.01)',
+              data: lowerThreshold,
+              borderColor: 'rgba(255, 77, 109, 0.6)',
+              borderWidth: 1.5,
+              borderDash: [6, 4],
+              pointRadius: 0,
+              fill: false,
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: { duration: 350 },
+          plugins: {
+            legend: {
+              display: true,
+              position: 'bottom',
+              labels: {
+                color: textColor,
+                font: { size: 9, family: 'SF Mono, monospace' },
+                boxWidth: 12,
+                padding: 8,
+              }
+            },
+            tooltip: {
+              backgroundColor: '#0A0E1A',
+              titleColor: '#00E5FF',
+              bodyColor: '#e2e8f0',
+              borderColor: 'rgba(0, 229, 255, 0.3)',
+              borderWidth: 1,
+              titleFont: { family: 'SF Mono, monospace', size: 11 },
+              bodyFont: { family: 'SF Mono, monospace', size: 10 },
+              callbacks: {
+                label: function(context) {
+                  if (context.datasetIndex === 0) {
+                    const val = context.parsed.y;
+                    const pi = Math.pow(10, val);
+                    return `PI: ${formatLR(pi)} (log₁₀: ${val.toFixed(2)})`;
+                  }
+                  return context.dataset.label;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              ticks: {
+                color: textColor,
+                font: { size: 8, family: 'SF Mono, monospace' },
+                maxRotation: 60,
+                minRotation: 45,
+              },
+              grid: { color: gridColor },
+            },
+            y: {
+              title: {
+                display: true,
+                text: 'log₁₀ (Paternity Index)',
+                color: textColor,
+                font: { size: 9, family: 'SF Mono, monospace' },
+              },
+              ticks: {
+                color: textColor,
+                font: { size: 8, family: 'SF Mono, monospace' },
+              },
+              grid: { color: gridColor },
+            }
+          }
+        }
+      });
+    }
+
+    function renderMLNarrative(results, caseObj) {
+      const verdictEl = $('inferenceVerdict');
+      const conclusionEl = $('inferenceConclusion');
+      const evidenceEl = $('inferenceEvidence');
+      const reviewEl = $('inferenceReview');
+
+      if (!verdictEl || !conclusionEl || !evidenceEl || !reviewEl) return;
+
+      const lr = Number(results.cpi);
+      const lrDisplay = formatLR(lr);
+      const prob = results.posteriorProbability !== undefined
+        ? results.posteriorProbability.toFixed(4) + '%'
+        : '99.9999%';
+
+      const exclusions = results.exclusions ?? 0;
+      const mutations = results.mutations ?? 0;
+      const matches = results.matches ?? 0;
+      const mutationLoci = results.mutationLoci ?? [];
+      const exclusionLoci = results.exclusionLoci ?? [];
+
+      let verdictLabel = results.verdict;
+      let conclusion = '';
+      let evidence = '';
+      let review = '';
+
+      if (results.verdict === 'STRONG INCLUSION') {
+        verdictLabel = 'SUPPORTS PATERNITY (STRONG INCLUSION)';
+        conclusion = 'The genetic STR evidence strongly supports the alleged father being the biological father of the child, with likelihood far exceeding legal and clinical inclusion thresholds.';
+        evidence = `Combined Likelihood Ratio: ${lrDisplay} | Probability of Paternity: ${prob}. Evaluated across ${results.totalLoci} CODIS loci with ${matches} compatible matches and 0 exclusions.`;
+      } else if (results.verdict === 'EXCLUSION') {
+        verdictLabel = 'EXCLUSION INDICATED (NON-PATERNITY)';
+        conclusion = 'The alleged father is definitively excluded as the biological father under standard forensic Mendelian inheritance criteria.';
+        const exList = exclusionLoci.map(e => e.locus).join(', ');
+        evidence = `${exclusions} genetic incompatibilit${exclusions === 1 ? 'y' : 'ies'} detected${exList ? ' at ' + exList : ''}. Combined LR: ${lrDisplay}.`;
+        review = 'Exclusion criteria satisfied. Laboratory protocol verifies exclusion when 2 or more loci exhibit non-concordance.';
+      } else if (results.verdict === 'REVIEW REQUIRED') {
+        verdictLabel = 'REVIEW REQUIRED (FLAGGED FINDINGS)';
+        if (mutations > 0) {
+          const mutList = mutationLoci.map(m => `${m.locus} (Δ${m.distance})`).join(', ');
+          conclusion = `Potential single-step STR mutation${mutations > 1 ? 's' : ''} identified (${mutList}). Technical verification required before report sign-off.`;
+          evidence = `${mutations} mutation event(s) observed. Combined LR: ${lrDisplay}. Matches: ${matches}/${results.totalLoci}.`;
+          review = 'Assess repeat unit delta, electropherogram peak quality, and locus-specific mutation rate model before final classification.';
+        } else {
+          conclusion = 'A single exclusion or atypical STR transmission pattern was observed, warranting secondary technical review.';
+          evidence = `Exclusions: ${exclusions}, Mutations: ${mutations}, Combined LR: ${lrDisplay}.`;
+          review = 'Confirm alleles with secondary reagent kit or replicate PCR amplification.';
+        }
+      } else {
+        verdictLabel = 'INCONCLUSIVE';
+        conclusion = 'The genetic profile does not meet the definitive criteria for inclusion or exclusion.';
+        evidence = `Combined LR: ${lrDisplay} falls within indeterminate region (0.01 to 10,000).`;
+        review = 'Test additional extended loci or kinship relatives to resolve hypothesis.';
+      }
+
+      if (results.ml) {
+        evidence += ` [ML Model: ${results.ml.ml_model || results.ml.model_name || 'Random Forest'} inference applied]`;
+      }
+
+      verdictEl.textContent = verdictLabel;
+      conclusionEl.textContent = conclusion;
+      evidenceEl.textContent = evidence;
+
+      if (review) {
+        reviewEl.textContent = '⚠ Laboratory Review: ' + review;
+        reviewEl.classList.remove('hidden');
+      } else {
+        reviewEl.classList.add('hidden');
+      }
+    }
+
+    // ============================================================
+    // 8. REPORT GENERATION
+    // ============================================================
+    function generateReportHTML(caseObj, results) {
+      const date = new Date().toLocaleString();
+      const pop = caseObj.population || 'Caucasian';
+      const analyst = caseObj.analyst || 'Unassigned';
+      const caseId = caseObj.id;
+      const lrDisplay = results ? formatLR(results.cpi) : 'N/A';
+      const probDisplay = results && results.posteriorProbability !== undefined ? results.posteriorProbability.toFixed(4) + '%' : 'N/A';
+      const verdict = results ? results.verdict : 'PENDING';
+
+      const verdictColor = verdict === 'STRONG INCLUSION' ? '#059669' :
+                           verdict === 'EXCLUSION' ? '#DC2626' : '#D97706';
+
+      let summaryRows = '';
+      if (results && results.loci) {
+        summaryRows = results.loci.map(r => `
+          <tr style="border-bottom:1px solid #e5e7eb;">
+            <td style="padding:4px 6px; font-family:monospace; font-size:10px;">${r.locus}</td>
+            <td style="padding:4px 6px; text-align:center; font-family:monospace; font-size:10px;">${r.mother}</td>
+            <td style="padding:4px 6px; text-align:center; font-family:monospace; font-size:10px;">${r.child}</td>
+            <td style="padding:4px 6px; text-align:center; font-family:monospace; font-size:10px;">${r.allegedFather}</td>
+            <td style="padding:4px 6px; text-align:center; font-family:monospace; font-size:10px; color:#0369a1; font-weight:bold;">${r.obligate}</td>
+            <td style="padding:4px 6px; text-align:center; font-family:monospace; font-size:10px;">${formatLR(r.pi)}</td>
+            <td style="padding:4px 6px; text-align:center; font-size:9px; font-weight:bold; color:${r.status === 'Match' ? '#059669' : r.status === 'Mutation' ? '#D97706' : '#DC2626'};">${r.status}</td>
+          </tr>
+        `).join('');
+      }
+
+      const exclusionDetails = results && results.exclusionLoci && results.exclusionLoci.length > 0
+        ? `<div style="margin-top:12px; padding:8px; border:1px solid #fecaca; background:#fef2f2; border-radius:4px;">
+            <div style="font-size:10px; font-weight:bold; color:#991b1b; margin-bottom:4px;">EXCLUSION DETAILS</div>
+            ${results.exclusionLoci.map(e => `<div style="font-size:9px; font-family:monospace; color:#7f1d1d;">• ${e.locus}: Obligate ${e.obligate} absent in AF (${(e.af || []).join('/')})</div>`).join('')}
+          </div>`
+        : '';
+
+      const mutationDetails = results && results.mutationLoci && results.mutationLoci.length > 0
+        ? `<div style="margin-top:12px; padding:8px; border:1px solid #fde68a; background:#fffbeb; border-radius:4px;">
+            <div style="font-size:10px; font-weight:bold; color:#92400e; margin-bottom:4px;">MUTATION FLAGS</div>
+            ${results.mutationLoci.map(m => `<div style="font-size:9px; font-family:monospace; color:#78350f;">• ${m.locus}: Obligate ${m.obligate} → AF ${m.mutationAllele} (Δ${m.distance})</div>`).join('')}
+          </div>`
+        : '';
+
+      return `
+        <div style="font-family: 'Times New Roman', serif; color: #111; max-width: 100%;">
+          <!-- Letterhead -->
+          <div style="text-align: center; border-bottom: 2px solid #111; padding-bottom: 12px; margin-bottom: 16px;">
+            <div style="font-size: 18px; font-weight: bold; letter-spacing: 2px;">CORE STR ANALYTICS LABS</div>
+            <div style="font-size: 12px; letter-spacing: 3px; margin-top: 2px;">// FORENSIC GENETICS DIVISION</div>
+            <div style="font-size: 9px; margin-top: 6px; color: #555;">Official Paternity & Kinship Analysis Report</div>
+          </div>
+
+          <!-- Chain of Custody Block -->
+          <div style="border: 1px solid #999; padding: 10px 12px; margin-bottom: 14px; background: #f9fafb;">
+            <div style="font-size: 10px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; border-bottom: 1px solid #ccc; padding-bottom: 4px;">Chain-of-Custody Certification</div>
+            <table style="width: 100%; font-size: 10px; font-family: monospace;">
+              <tr><td style="padding: 2px 0; width: 40%;">Analyst Signature:</td><td style="padding: 2px 0; border-bottom: 1px solid #999;">${analyst}</td></tr>
+              <tr><td style="padding: 2px 0;">Date of Analysis:</td><td style="padding: 2px 0; border-bottom: 1px solid #999;">${date}</td></tr>
+              <tr><td style="padding: 2px 0;">Case Ingestion ID:</td><td style="padding: 2px 0; border-bottom: 1px solid #999;">${caseId}</td></tr>
+              <tr><td style="padding: 2px 0;">Analytical Engine:</td><td style="padding: 2px 0; border-bottom: 1px solid #999;">${results ? results.mlSource : 'Forensic Core'}</td></tr>
+            </table>
+          </div>
+
+          <!-- Case Demographics Grid -->
+          <div style="display: flex; gap: 12px; margin-bottom: 14px;">
+            <div style="flex: 1; border: 1px solid #999; padding: 8px;">
+              <div style="font-size: 9px; color: #555; text-transform: uppercase;">Patient Case ID</div>
+              <div style="font-size: 12px; font-weight: bold; font-family: monospace;">${caseId}</div>
+            </div>
+            <div style="flex: 1; border: 1px solid #999; padding: 8px;">
+              <div style="font-size: 9px; color: #555; text-transform: uppercase;">Population Cohort</div>
+              <div style="font-size: 12px; font-weight: bold; font-family: monospace;">${pop}</div>
+            </div>
+            <div style="flex: 1; border: 1px solid #999; padding: 8px;">
+              <div style="font-size: 9px; color: #555; text-transform: uppercase;">Paternity Probability</div>
+              <div style="font-size: 12px; font-weight: bold; font-family: monospace;">${probDisplay}</div>
+            </div>
+          </div>
+
+          <!-- Verdict Banner -->
+          <div style="border: 2px solid ${verdictColor}; padding: 10px; margin-bottom: 14px; text-align: center; background: #f9fafb;">
+            <div style="font-size: 9px; color: #555; text-transform: uppercase; letter-spacing: 1px;">Final Parentage Classification</div>
+            <div style="font-size: 16px; font-weight: bold; color: ${verdictColor}; margin: 4px 0;">${verdict}</div>
+            <div style="font-size: 11px; font-family: monospace;">Combined Likelihood Ratio: ${lrDisplay} | Probability: ${probDisplay}</div>
+          </div>
+
+          <!-- Summary Matrix -->
+          <div style="margin-bottom: 14px;">
+            <div style="font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; border-bottom: 1px solid #999; padding-bottom: 3px;">Formal Summary Matrix — 20 CODIS Core Loci</div>
+            <table style="width: 100%; border-collapse: collapse; border: 1px solid #999;">
+              <thead>
+                <tr style="background: #f0f0f0; border-bottom: 1px solid #999;">
+                  <th style="padding: 4px 6px; font-size: 9px; text-align: left;">Locus</th>
+                  <th style="padding: 4px 6px; font-size: 9px; text-align: center;">Mother</th>
+                  <th style="padding: 4px 6px; font-size: 9px; text-align: center;">Child</th>
+                  <th style="padding: 4px 6px; font-size: 9px; text-align: center;">Alleged Father</th>
+                  <th style="padding: 4px 6px; font-size: 9px; text-align: center;">Obligate</th>
+                  <th style="padding: 4px 6px; font-size: 9px; text-align: center;">PI</th>
+                  <th style="padding: 4px 6px; font-size: 9px; text-align: center;">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${summaryRows || '<tr><td colspan="7" style="text-align:center; padding:20px; font-size:10px; color:#888;">No analysis data available</td></tr>'}
+              </tbody>
+            </table>
+          </div>
+
+          ${exclusionDetails}
+          ${mutationDetails}
+
+          <!-- Methodology Notes -->
+          <div style="margin-top: 14px; border-top: 1px solid #ccc; padding-top: 8px;">
+            <div style="font-size: 9px; font-weight: bold; text-transform: uppercase; margin-bottom: 4px;">Methodology & Statistical Foundation</div>
+            <div style="font-size: 9px; color: #555; line-height: 1.5;">
+              Analysis conducted on 20 CODIS core STR loci using Mendelian obligate paternal allele deduction. Allele frequencies based on ${pop} population dataset.
+              Paternity Index (PI) derived as P(Child|Mother, Alleged Father) / P(Child|Mother, Random Unrelated Male).
+              Combined Likelihood Ratio (CLR) represents the product of all independent locus PIs. Decision thresholds: CLR &gt; 10,000 indicates Strong Inclusion (&gt;99.99% posterior probability with neutral prior 0.50); CLR &lt; 0.01 or &ge;2 direct exclusions indicates Non-Paternity.
+            </div>
+          </div>
+
+          <!-- Sign-off -->
+          <div style="margin-top: 20px; border-top: 2px solid #111; padding-top: 12px;">
+            <div style="font-size: 11px; margin-bottom: 20px;">Certified Forensic Analyst Sign-off: _________________________</div>
+            <div style="font-size: 8px; color: #888; text-align: center; line-height: 1.4;">
+              notice: this report was dynamically processed and validated via the core analytics engine. for research and clinical validation pipelines.
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // ============================================================
+    // 9. EXPORT UTILITIES (CSV & JSON)
+    // ============================================================
+    function downloadBlob(blob, filename) {
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      }, 100);
+    }
+
+    async function exportCSV() {
+      if (!analysisResults) {
+        alert('No analysis results to export.');
+        return;
+      }
+      const caseObj = cases.find(c => c.id === activeCaseId);
+      if (!caseObj) return;
+
+      // Try fetching from backend if configured
+      if (ML_CONFIG.enabled) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 1500);
+          const response = await fetch(`${ML_CONFIG.apiBase}${ML_CONFIG.endpoints.downloadCsv}/${caseObj.id}`, {
+            signal: controller.signal
+          });
+          clearTimeout(timeoutId);
+          if (response.ok) {
+            const blob = await response.blob();
+            downloadBlob(blob, `${caseObj.id}_STR_analysis.csv`);
+            return;
+          }
+        } catch (e) {
+          console.log('Backend CSV download unavailable, generating client-side report.');
+        }
+      }
+
+      // Client-side CSV generation
+      const rows = [
+        ['Case ID', caseObj.id],
+        ['Analyst', caseObj.analyst || 'Unassigned'],
+        ['Population Group', caseObj.population || 'Caucasian'],
+        ['Export Timestamp', new Date().toISOString()],
+        ['Combined Likelihood Ratio', analysisResults.cpi],
+        ['Posterior Probability (%)', analysisResults.posteriorProbability || ''],
+        ['Verdict', analysisResults.verdict],
+        ['Evaluated Loci', analysisResults.totalLoci],
+        ['Compatible Loci', analysisResults.matches],
+        ['Mutation Events', analysisResults.mutations],
+        ['Exclusionary Loci', analysisResults.exclusions],
+        [],
+        ['Locus', 'Mother', 'Child', 'AllegedFather', 'ObligatePaternalAllele', 'PaternityIndex', 'Status', 'Notes']
+      ];
+
+      (analysisResults.loci || []).forEach(r => {
+        rows.push([
+          r.locus,
+          `"${r.mother}"`,
+          `"${r.child}"`,
+          `"${r.allegedFather}"`,
+          `"${r.obligate}"`,
+          r.pi,
+          r.status,
+          `"${(r.note || '').replace(/"/g, '""')}"`
+        ]);
+      });
+
+      const csvContent = rows.map(r => r.join(',')).join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      downloadBlob(blob, `${caseObj.id}_STR_analysis.csv`);
+    }
+
+    function exportJSON() {
+      if (!analysisResults) {
+        alert('No analysis results to export.');
+        return;
+      }
+      const caseObj = cases.find(c => c.id === activeCaseId);
+      if (!caseObj) return;
+
+      const exportData = {
+        caseId: caseObj.id,
+        analyst: caseObj.analyst,
+        population: caseObj.population,
+        notes: caseObj.notes,
+        timestamp: new Date().toISOString(),
+        combinedLR: analysisResults.cpi,
+        posteriorProbability: analysisResults.posteriorProbability,
+        verdict: analysisResults.verdict,
+        metrics: {
+          totalLoci: analysisResults.totalLoci,
+          matches: analysisResults.matches,
+          mutations: analysisResults.mutations,
+          exclusions: analysisResults.exclusions,
+        },
+        loci: (analysisResults.loci || []).map(r => ({
+          locus: r.locus,
+          mother: r.mother,
+          child: r.child,
+          allegedFather: r.allegedFather,
+          obligatePaternal: r.obligate,
+          pi: r.pi,
+          status: r.status,
+          note: r.note || null,
+          distance: r.distance || null
+        })),
+        mlSource: analysisResults.mlSource || 'Local Forensic Core'
+      };
+
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+      downloadBlob(blob, `${caseObj.id}_STR_analysis.json`);
+    }
+
+    // ============================================================
+    // 10. DEMO GENERATOR & CSV FILE PARSER
+    // ============================================================
+    function generateDemoLoci(scenarioType) {
+      const loci = {};
+
+      CODIS_20.forEach((locus, idx) => {
+        // Mother alleles
+        const m1 = randomAllele(locus);
+        const m2 = randomAllele(locus);
+        const mother = [m1, m2].sort((a,b) => alleleToNumeric(a) - alleleToNumeric(b));
+        const mSet = new Set(mother);
+
+        const maternalAllele = Math.random() < 0.5 ? m1 : m2;
+
+        // Choose a paternal allele distinct from mother for clean obligate identification
+        let paternalAllele = randomAllele(locus);
+        let tries = 0;
+        while (mSet.has(paternalAllele) && tries < 15) {
+          paternalAllele = randomAllele(locus);
+          tries++;
+        }
+        const child = [maternalAllele, paternalAllele].sort((a,b) => alleleToNumeric(a) - alleleToNumeric(b));
+        const patNum = alleleToNumeric(paternalAllele);
+
+        let af1, af2;
+
+        if (scenarioType === 'inclusion') {
+          // Alleged father matches the paternal allele
+          af1 = paternalAllele;
+          af2 = randomAllele(locus);
+        } else if (scenarioType === 'mutation') {
+          // Index 2 (D5S818) has single-step mutation (+1)
+          if (idx === 2) {
+            af1 = String(patNum + 1);
+            af2 = randomAllele(locus);
+            if (alleleToNumeric(af2) === patNum) af2 = String(patNum + 3);
+          } else {
+            af1 = paternalAllele;
+            af2 = randomAllele(locus);
+          }
+        } else if (scenarioType === 'exclusion') {
+          // Every 3rd locus has exclusion (+3 / +5 steps)
+          if (idx % 3 === 0) {
+            af1 = String(patNum + 3);
+            af2 = String(patNum + 5);
+          } else {
+            af1 = paternalAllele;
+            af2 = randomAllele(locus);
+          }
+        } else {
+          af1 = paternalAllele;
+          af2 = randomAllele(locus);
+        }
+
+        loci[locus] = {
+          mother: mother,
+          child: child,
+          allegedFather: [af1, af2].sort((a,b) => alleleToNumeric(a) - alleleToNumeric(b))
+        };
+      });
+
+      return loci;
+    }
+
+    function parseCsvText(text) {
+      const lines = text.trim().split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+      if (lines.length < 2) return null;
+
+      const header = lines[0].split(',').map(c => c.trim().toLowerCase());
+      const loci = {};
+      CODIS_20.forEach(l => {
+        loci[l] = { mother: ['', ''], child: ['', ''], allegedFather: ['', ''] };
+      });
+
+      // Schema 1: Case row schema (like paternity.csv)
+      if (header.includes('mother_csf1po') || header.includes('child_csf1po')) {
+        const row = lines[1].split(',').map(c => c.trim());
+        header.forEach((col, idx) => {
+          const val = row[idx];
+          if (!val) return;
+          const parts = val.replace(/"/g, '').split('/');
+          CODIS_20.forEach(locus => {
+            const locKey = locus.toLowerCase();
+            if (col === `mother_${locKey}`) {
+              loci[locus].mother = [parts[0] || '', parts[1] || parts[0] || ''];
+            } else if (col === `child_${locKey}`) {
+              loci[locus].child = [parts[0] || '', parts[1] || parts[0] || ''];
+            } else if (col === `father_${locKey}` || col === `af_${locKey}`) {
+              loci[locus].allegedFather = [parts[0] || '', parts[1] || parts[0] || ''];
+            }
+          });
+        });
+        return loci;
+      }
+
+      // Schema 2: Locus per row (Locus,M1,M2,C1,C2,AF1,AF2)
+      for (let i = 1; i < lines.length; i++) {
+        const cols = lines[i].split(',').map(c => c.trim().replace(/"/g, ''));
+        if (cols.length >= 7) {
+          const loc = cols[0].toUpperCase();
+          if (loci[loc]) {
+            loci[loc].mother = [cols[1], cols[2]];
+            loci[loc].child = [cols[3], cols[4]];
+            loci[loc].allegedFather = [cols[5], cols[6]];
+          }
+        }
+      }
+
+      return loci;
+    }
+
+    // ============================================================
+    // 11. EVENT LISTENERS & INITIALIZATION
+    // ============================================================
+    function initEventListeners() {
+      // Theme toggle
+      $('themeToggle').addEventListener('click', () => {
+        document.body.classList.toggle('light-mode');
+        const isLight = document.body.classList.contains('light-mode');
+        $('themeIcon').setAttribute('data-lucide', isLight ? 'sun' : 'moon');
+        if (window.lucide && typeof window.lucide.createIcons === 'function') window.lucide.createIcons();
+        if (analysisResults) renderChart(analysisResults);
+      });
+
+      // New Case Modal
+      $('newCaseBtn').addEventListener('click', () => {
+        $('newCaseId').value = generateCaseId();
+        $('newAnalystName').value = '';
+        $('newCaseNotes').value = '';
+        $('newCaseModal').classList.remove('hidden');
+      });
+
+      $('closeNewCaseModal').addEventListener('click', () => $('newCaseModal').classList.add('hidden'));
+      $('cancelNewCase').addEventListener('click', () => $('newCaseModal').classList.add('hidden'));
+
+      $('initTriadBtn').addEventListener('click', () => {
+        const caseId = $('newCaseId').value;
+        const analyst = $('newAnalystName').value.trim() || 'Dr. R. Chen';
+        const population = $('newPopulation').value;
+        const notes = $('newCaseNotes').value.trim() || 'Casework initialized.';
+
+        const emptyLoci = {};
+        CODIS_20.forEach(locus => {
+          emptyLoci[locus] = { mother: ['', ''], child: ['', ''], allegedFather: ['', ''] };
+        });
+
+        const newCase = {
+          id: caseId,
+          status: 'Draft',
+          analyst,
+          population,
+          notes,
+          loci: emptyLoci
+        };
+
+        cases.push(newCase);
+        $('newCaseModal').classList.add('hidden');
+        renderCaseList();
+        selectCase(caseId);
+      });
+
+      // Demo Loader (cycles Inclusion -> Mutation -> Exclusion)
+      $('loadDemoBtn').addEventListener('click', () => {
+        const caseId = generateCaseId();
+        const demoAnalysts = ['Dr. R. Chen', 'Dr. S. Okafor', 'Dr. M. Rossi', 'Dr. A. Patel'];
+        const scenarios = ['inclusion', 'mutation', 'exclusion'];
+        const scenario = scenarios[demoCycleIndex % scenarios.length];
+        demoCycleIndex++;
+
+        const scenarioNotes = {
+          'inclusion': 'Synthetic Case: Alleged Father is Biological Father (20 Loci Compatible - Strong Inclusion).',
+          'mutation': 'Synthetic Case: Single-step STR Mutation at locus D5S818 (Δ1 - Review Required).',
+          'exclusion': 'Synthetic Case: Unrelated Male Profile (Multiple Mendelian Exclusions - Non-Paternity).'
+        };
+
+        const demoCase = {
+          id: caseId,
+          status: 'Processing',
+          analyst: demoAnalysts[Math.floor(Math.random() * demoAnalysts.length)],
+          population: 'Caucasian',
+          notes: scenarioNotes[scenario],
+          loci: generateDemoLoci(scenario)
+        };
+
+        cases.push(demoCase);
+        renderCaseList();
+        selectCase(caseId);
+      });
+
+      // CSV Modal & Drag/Drop
+      $('importCsvBtn').addEventListener('click', () => {
+        selectedCsvFile = null;
+        $('csvPreview').classList.add('hidden');
+        $('csvModal').classList.remove('hidden');
+      });
+
+      $('closeCsvModal').addEventListener('click', () => $('csvModal').classList.add('hidden'));
+      $('cancelCsvBtn').addEventListener('click', () => $('csvModal').classList.add('hidden'));
+
+      $('dropZone').addEventListener('click', () => $('csvFileInput').click());
+
+      $('csvFileInput').addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+          selectedCsvFile = e.target.files[0];
+          $('csvPreview').textContent = `✓ Selected: ${selectedCsvFile.name} (${(selectedCsvFile.size / 1024).toFixed(1)} KB)`;
+          $('csvPreview').classList.remove('hidden');
+        }
+      });
+
+      const dropZone = $('dropZone');
+      ['dragenter', 'dragover'].forEach(evt => {
+        dropZone.addEventListener(evt, (e) => {
+          e.preventDefault();
+          dropZone.classList.add('border-cyanaccent/60', 'bg-cyanaccent/5');
+        });
+      });
+      ['dragleave', 'drop'].forEach(evt => {
+        dropZone.addEventListener(evt, (e) => {
+          e.preventDefault();
+          dropZone.classList.remove('border-cyanaccent/60', 'bg-cyanaccent/5');
+        });
+      });
+      dropZone.addEventListener('drop', (e) => {
+        if (e.dataTransfer.files.length > 0) {
+          selectedCsvFile = e.dataTransfer.files[0];
+          $('csvPreview').textContent = `✓ Dropped: ${selectedCsvFile.name} (${(selectedCsvFile.size / 1024).toFixed(1)} KB)`;
+          $('csvPreview').classList.remove('hidden');
+        }
+      });
+
+      $('simulateImportBtn').addEventListener('click', () => {
+        if (selectedCsvFile) {
+          const reader = new FileReader();
+          reader.onload = (evt) => {
+            const parsedLoci = parseCsvText(evt.target.result);
+            const caseId = generateCaseId();
+            const importedCase = {
+              id: caseId,
+              status: 'Processing',
+              analyst: 'CSV Data Pipeline',
+              population: 'Caucasian',
+              notes: `Imported from ${selectedCsvFile.name}.`,
+              loci: parsedLoci || generateDemoLoci('inclusion')
+            };
+            cases.push(importedCase);
+            $('csvModal').classList.add('hidden');
+            renderCaseList();
+            selectCase(caseId);
+          };
+          reader.readAsText(selectedCsvFile);
+        } else {
+          const caseId = generateCaseId();
+          const demoCase = {
+            id: caseId,
+            status: 'Processing',
+            analyst: 'CSV Batch Simulation',
+            population: 'Caucasian',
+            notes: 'Imported via CSV ingestion pipeline (simulated profile).',
+            loci: generateDemoLoci('inclusion')
+          };
+          cases.push(demoCase);
+          $('csvModal').classList.add('hidden');
+          renderCaseList();
+          selectCase(caseId);
+        }
+      });
+
+      // Run Analysis button
+      $('runAnalysisBtn').addEventListener('click', performAnalysis);
+
+      // Report Preview & Print
+      $('previewReportBtn').addEventListener('click', () => {
+        if (!activeCaseId) { alert('No active case selected.'); return; }
+        const caseObj = cases.find(c => c.id === activeCaseId);
+        if (!caseObj) { alert('Case not found.'); return; }
+        const results = analysisResults || calculateForensicMetrics(caseObj);
+        $('reportContent').innerHTML = generateReportHTML(caseObj, results);
+        $('reportModal').classList.remove('hidden');
+      });
+
+      function triggerPrintReport() {
+        if (!activeCaseId) { alert('No active case selected.'); return; }
+        const caseObj = cases.find(c => c.id === activeCaseId);
+        if (!caseObj) { alert('Case not found.'); return; }
+        const results = analysisResults || calculateForensicMetrics(caseObj);
+        $('reportContent').innerHTML = generateReportHTML(caseObj, results);
+        window.print();
+      }
+
+      $('closeReportModal').addEventListener('click', () => $('reportModal').classList.add('hidden'));
+      $('printReportBtn').addEventListener('click', triggerPrintReport);
+      const exportPdfBtn = $('exportPdfBtn');
+      if (exportPdfBtn) exportPdfBtn.addEventListener('click', triggerPrintReport);
+
+      // Export Buttons
+      $('exportCsvBtn').addEventListener('click', exportCSV);
+      $('exportJsonBtn').addEventListener('click', exportJSON);
+
+      // Search & Filters
+      $('caseSearch').addEventListener('input', renderCaseList);
+      $('statusFilter').addEventListener('change', renderCaseList);
+    }
+
+    // ============================================================
+    // 12. INITIALIZATION & BOOTSTRAP
+    // ============================================================
+    function init() {
+      if (window.lucide && typeof window.lucide.createIcons === 'function') window.lucide.createIcons();
+
+      // Pre-populate with initial demonstration case
+      const initialCaseId = generateCaseId();
+      const initialCase = {
+        id: initialCaseId,
+        status: 'Processing',
+        analyst: 'Dr. R. Chen',
+        population: 'Caucasian',
+        notes: 'Initial benchmark STR casework: True Biological Father (20 CODIS Loci).',
+        loci: generateDemoLoci('inclusion')
+      };
+      cases.push(initialCase);
+
+      renderCaseList();
+      initEventListeners();
+
+      selectCase(initialCaseId);
+
+      console.log('%cGENETRACE // Forensic Paternity & STR Analytics Core', 'color: #00E5FF; font-size: 14px; font-weight: bold;');
+      console.log('%cML Pipeline Interface: Configured for http://localhost:8000/ml/analyze-paternity', 'color: #34D399; font-size: 11px;');
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+
+  })();
+  // Run this whenever your theme button is clicked, or call updateTheme()
+  function updateTheme() {
+    const isDark = document.documentElement.classList.contains('dark') || document.body.classList.contains('dark');
+    const body = document.getElementById('appBody');
+    
+    if (isDark) {
+      body.style.backgroundColor = '#0A0E1A'; // your obsidian
+      body.style.color = '#E5E7EB';           // your light gray text
+    } else {
+      body.style.backgroundColor = '#F8FAFC'; // clean light bg
+      body.style.color = '#1E293B';           // clean dark text
+    }
+  }
+
+  // Hook into your existing theme toggle button if it has an ID, e.g., 'themeToggle'
+  const toggleBtn = document.getElementById('themeToggle');
+  if (toggleBtn) {
+    toggleBtn.addEventListener('click', () => {
+      // Small timeout to let your existing class toggle finish first
+      setTimeout(updateTheme, 10);
+    });
+  }
+  // Run once on load
+  updateTheme();
+  // Execution scope initialized on DOM confirmation
+  async function pipelineMetricsEngine() {
+    try {
+      const targetEndpoint = 'model_metrics.json';
+      const executionStream = await fetch(targetEndpoint);
+      
+      if (!executionStream.ok) {
+        console.error("Pipeline Sync Interrupted: model_metrics.json source missing.");
+        return;
+      }
+      
+      const metricsPayload = await executionStream.json();
+
+      // Dynamic DOM Assignment: Random Forest Vector
+      document.getElementById('rf-roc').textContent = metricsPayload.random_forest.roc_auc.toFixed(4);
+      document.getElementById('rf-acc').textContent = (metricsPayload.random_forest.accuracy * 100).toFixed(2) + '%';
+      document.getElementById('rf-precision').textContent = metricsPayload.random_forest.weighted_avg.precision.toFixed(4);
+      document.getElementById('rf-recall').textContent = metricsPayload.random_forest.weighted_avg.recall.toFixed(4);
+      document.getElementById('rf-f1').textContent = metricsPayload.random_forest.weighted_avg['f1-score'].toFixed(4);
+
+      // Dynamic DOM Assignment: Decision Tree Baseline Vector
+      document.getElementById('dt-roc').textContent = metricsPayload.decision_tree.roc_auc.toFixed(4);
+      document.getElementById('dt-acc').textContent = (metricsPayload.decision_tree.accuracy * 100).toFixed(2) + '%';
+      document.getElementById('dt-precision').textContent = metricsPayload.decision_tree.weighted_avg.precision.toFixed(4);
+      document.getElementById('dt-recall').textContent = metricsPayload.decision_tree.weighted_avg.recall.toFixed(4);
+      document.getElementById('dt-f1').textContent = metricsPayload.decision_tree.weighted_avg['f1-score'].toFixed(4);
+
+    } catch (fault) {
+      console.warn("Metrics Engine Routing Fault Exception Handled:", fault);
+    }
+  }
+
+  // Bind to view initialize stack lifecycle
+  window.addEventListener('DOMContentLoaded', () => {
+    pipelineMetricsEngine();
+    // Re-trigger icon rendering engine if any icons were injected dynamically
+    if (window.lucide) { lucide.createIcons(); }
+  });
+  let modelSession;
+
+// Load the model once when the page starts
+async function loadModel() {
+  modelSession = await ort.InferenceSession.create(
+    "./model.onnx",
+    { executionProviders: ["wasm"] }
+  );
+
+  console.log("ONNX model loaded!");
+}
+
+async function predictWithONNX(features) {
+  if (!modelSession) {
+    throw new Error("The ML model is still loading.");
+  }
+
+  if (features.length !== 22) {
+    throw new Error(`Expected 22 features, received ${features.length}.`);
+  }
+
+  const tensor = new ort.Tensor(
+    "float32",
+    Float32Array.from(features),
+    [1, 22]
+  );
+
+  return await modelSession.run({
+    float_input: tensor
+  });
+}
+loadModel().catch(console.error);
+</script>
+</body>
+</html>

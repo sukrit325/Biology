@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#080d1b">
+<title>STR Explained | The Science of Paternity Testing</title>
+<style>
+:root{--bg:#080d1b;--panel:#111a2d;--panel2:#17233b;--text:#f0f5ff;--muted:#a5b4cf;--blue:#69a7ff;--cyan:#55eadb;--orange:#ffb86b;--line:#293752}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.7}
+a{color:inherit}
+.nav{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:16px 7%;border-bottom:1px solid var(--line);background:#080d1bf2;position:relative;z-index:5}
+.logo{font-weight:850;letter-spacing:1px}.logo span{color:var(--cyan)}
+.nav a{color:var(--muted);text-decoration:none;font-size:.9rem}
+
+.hero {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  align-items: center;
+  gap: clamp(20px, 4vw, 65px);
+
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 75px 7%;
+  min-height: 570px;
+
+  background:
+    radial-gradient(
+      ellipse at 80% 45%,
+      rgba(0, 180, 255, 0.09),
+      transparent 42%
+    );
+}
+
+.hero-copy {
+  position: relative;
+  z-index: 2;
+  text-align: left;
+}
+
+.hero-copy h1 {
+  margin: 18px 0;
+}
+
+.hero-copy p {
+  margin: 20px 0;
+  max-width: 570px;
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.hero-actions .button {
+  margin: 8px 0;
+}
+
+.hero-visual {
+  position: relative;
+  min-width: 0;
+  height: 450px;
+  overflow: hidden;
+  border: 1px solid rgba(105, 167, 255, 0.18);
+  border-radius: 24px;
+
+  background:
+    radial-gradient(
+      ellipse at center,
+      rgba(0, 183, 255, 0.13),
+      transparent 65%
+    ),
+    linear-gradient(145deg, #0e2037, #060d1b);
+
+  box-shadow:
+    inset 0 0 45px rgba(0, 190, 255, 0.04),
+    0 20px 60px rgba(0, 0, 0, 0.18);
+}
+
+.hero-dna {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.dna-caption {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 17px;
+  text-align: center;
+  font-size: 0.68rem;
+  letter-spacing: 3px;
+  color: rgba(165, 180, 207, 0.7);
+  pointer-events: none;
+}
+
+@media (max-width: 760px) {
+  .hero {
+    grid-template-columns: 1fr;
+    gap: 25px;
+    padding: 60px 6% 45px;
+  }
+
+  .hero-copy {
+    text-align: center;
+  }
+
+  .hero-copy p {
+    margin: 20px auto;
+  }
+
+  .hero-actions {
+    justify-content: center;
+  }
+
+  .hero-visual {
+    width: 100%;
+    max-width: 480px;
+    height: 340px;
+    margin: 0 auto;
+  }
+}
+
+.eyebrow{color:var(--cyan);text-transform:uppercase;letter-spacing:3px;font-size:.76rem;font-weight:800}
+h1{font-size:clamp(2.5rem,7vw,5rem);line-height:1.08;letter-spacing:-2px;max-width:900px;margin:18px auto}
+.gradient{background:linear-gradient(90deg,var(--cyan),var(--blue));color:transparent;background-clip:text;-webkit-background-clip:text}
+.hero p{max-width:650px;margin:20px auto;color:#c1cce0;font-size:1.08rem}
+.button{display:inline-block;padding:13px 21px;border-radius:10px;background:var(--cyan);color:#07131d;font-weight:800;text-decoration:none;margin:10px 5px;transition:background .2s,transform .2s}
+.button:hover{background:#a0fff2;transform:translateY(-2px)}
+.button.secondary{color:var(--text);background:var(--panel2);border:1px solid var(--line)}
+.wrap{width:min(1000px,90%);margin:auto}
+.lesson{padding:58px 0;border-top:1px solid var(--line)}
+.number{color:var(--cyan);font-size:.8rem;font-weight:800;letter-spacing:2px}
+h2{font-size:clamp(1.8rem,4vw,2.7rem);line-height:1.2;margin:10px 0 15px}
+h3{margin-top:0}p{color:var(--muted)}strong{color:var(--text)}
+.visual{margin:28px 0;padding:26px;border:1px solid var(--line);border-radius:18px;background:linear-gradient(140deg,var(--panel),#0c1424);overflow:hidden}
+.visual-title{text-align:center;font-size:.8rem;color:var(--muted);margin-bottom:22px;letter-spacing:1px;text-transform:uppercase}
+.parent-grid{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:15px;text-align:center}
+.person{padding:17px 8px;background:var(--panel2);border-radius:12px}
+.person .emoji{display:block;font-size:2.2rem}.person small{display:block;color:var(--muted)}
+.arrow{color:var(--cyan);font-size:1.6rem}
+.child-card{max-width:260px;margin:20px auto 0;border:1px solid #55eadb66;background:#55eadb0c;padding:14px;border-radius:12px;text-align:center}
+.color-key{display:flex;gap:15px;flex-wrap:wrap;justify-content:center;margin-top:18px;font-size:.83rem;color:var(--muted)}
+.dot{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px}
+.blue{background:var(--blue)}.orange{background:var(--orange)}.cyan{background:var(--cyan)}
+.inheritance{animation:inheritGlow 3s ease-in-out infinite}
+@keyframes inheritGlow{0%,100%{box-shadow:0 0 0 #55eadb00}50%{box-shadow:0 0 28px #55eadb20}}
+.repeat-sequence{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;padding:15px 0}
+.repeat-unit{border:1px solid #69a7ff77;color:var(--blue);background:#69a7ff13;padding:9px 12px;border-radius:8px;font-family:monospace;font-weight:800;animation:repeatPulse 3s ease-in-out infinite}
+.repeat-unit:nth-child(2){animation-delay:.3s}.repeat-unit:nth-child(3){animation-delay:.6s}.repeat-unit:nth-child(4){animation-delay:.9s}
+@keyframes repeatPulse{0%,100%{transform:translateY(0);opacity:.65}50%{transform:translateY(-7px);opacity:1}}
+.profile{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:18px}
+.profile-card{background:var(--panel2);padding:14px 8px;border-radius:10px;text-align:center;min-width:0}
+.profile-card h3{font-size:.85rem;color:var(--muted)}
+.alleles{display:flex;justify-content:center;gap:7px;flex-wrap:wrap}
+.allele{display:inline-block;padding:8px 11px;background:#69a7ff18;border:1px solid var(--blue);border-radius:7px;color:var(--blue);font-weight:800;animation:alleleReveal 3.6s ease-in-out infinite}
+.allele.inherited{color:var(--cyan);background:#55eadb18;border-color:var(--cyan)}
+.profile-card:nth-child(2) .allele{animation-delay:.5s}.profile-card:nth-child(3) .allele{animation-delay:1s}
+@keyframes alleleReveal{0%,12%{opacity:.35;transform:scale(.92)}30%,85%{opacity:1;transform:scale(1)}100%{opacity:.35;transform:scale(.92)}}
+.note{padding:17px 20px;border-left:3px solid var(--cyan);border-radius:0 10px 10px 0;background:#55eadb0b;margin:20px 0}
+.note p{margin-bottom:0}
+.concept-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:25px}
+.concept{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px}
+.concept .big{color:var(--cyan);font-size:1.3rem;font-weight:850}.concept p{font-size:.9rem}
+.cta{text-align:center;padding:55px 25px;border:1px solid #55eadb44;background:radial-gradient(ellipse at center,#15364a,var(--panel) 75%);border-radius:20px;margin:25px 0 65px}
+.cta p{max-width:620px;margin:15px auto}
+footer{border-top:1px solid var(--line);text-align:center;padding:24px;font-size:.85rem}footer p{margin:0}
+@media(max-width:600px){.nav{padding:14px 5%}.nav a{font-size:.8rem}.hero{padding:65px 18px 55px;min-height:530px}.hero p{font-size:1rem}.visual{padding:17px}.profile{gap:5px}.profile-card{padding:12px 4px}.allele{padding:7px;font-size:.85rem}.concept-grid{grid-template-columns:1fr}.parent-grid{gap:7px}.person{font-size:.85rem}}
+@media(prefers-reduced-motion:reduce){.inheritance,.repeat-unit,.allele{animation:none!important}html{scroll-behavior:auto}}
+
+/* SCROLL REVEAL ANIMATIONS */
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+/* Stagger cards for a smooth sequence */
+
+.concept.reveal:nth-child(2) {
+  transition-delay: 120ms;
+}
+
+.concept.reveal:nth-child(3) {
+  transition-delay: 240ms;
+}
+
+/* Slightly slower reveal for major sections */
+
+.lesson.reveal,
+.cta.reveal {
+  transition-duration: 800ms;
+}
+
+/* Respect accessibility preferences */
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    filter: none;
+    transition: none;
+    will-change: auto;
+  }
+}
+
+</style>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"
+  }
+}
+</script>
+
+</head>
+<body>
+
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/ScrollTrigger.min.js"></script>
+
+<nav class="nav">
+  <div class="logo">STR<span>LAB</span></div>
+  <a href="#tester">GO TO THE TESTER ↗</a>
+</nav>
+
+
+<header class="hero">
+  <div class="hero-copy">
+    <div class="eyebrow">A visual introduction to genetics</div>
+
+    <h1>
+      How can DNA help answer a
+      <span class="gradient">paternity question?</span>
+    </h1>
+
+    <p>
+      No biology background needed. Discover what DNA is, how STRs
+      work, and how scientists compare genetic information to
+      investigate biological relationships.
+    </p>
+
+    <div class="hero-actions">
+      <a class="button" href="#lesson1">Start exploring ↓</a>
+      <a class="button secondary" href="#lesson3">
+        See how testing works
+      </a>
+    </div>
+  </div>
+
+  <div class="hero-visual">
+    <canvas
+      class="hero-dna"
+      id="dnaCanvas"
+      aria-hidden="true">
+    </canvas>
+    <div class="dna-caption">THE DOUBLE HELIX</div>
+  </div>
+</header>
+
+<main class="wrap">
+<section class="lesson" id="lesson1">
+  <div class="number">01 / THE BASICS</div>
+  <h2>First, what is DNA?</h2>
+  <p>Imagine your body has an enormous instruction library. These instructions help cells grow, function, and develop. That library is carried in a molecule called <strong>DNA</strong>.</p>
+  <p>You inherit nuclear DNA from both biological parents. At most locations in the genome, you carry one copy inherited from your mother and one inherited from your father.</p>
+  <div class="visual inheritance">
+    <div class="visual-title">A simplified model of inheritance</div>
+    <div class="parent-grid">
+      <div class="person"><span class="emoji">🧑</span><strong>Biological mother</strong><small>Contributes inherited DNA</small></div>
+      <div class="arrow">→</div>
+      <div class="person"><span class="emoji">🧒</span><strong>Child</strong><small>Inherits from both parents</small></div>
+    </div>
+    <div class="parent-grid" style="margin-top:10px">
+      <div class="person"><span class="emoji">👨</span><strong>Biological father</strong><small>Contributes inherited DNA</small></div>
+      <div class="arrow">→</div>
+      <div class="person"><span class="emoji">🧬</span><strong>DNA profile</strong><small>Contains measurable markers</small></div>
+    </div>
+    <div class="color-key"><span><i class="dot blue"></i>One inherited contribution</span><span><i class="dot orange"></i>Another inherited contribution</span></div>
+  </div>
+  <div class="note"><strong>Key idea:</strong> A paternity test does not identify a father by appearance, personality, or resemblance. It examines inherited genetic evidence.</div>
+</section>
+
+<section class="lesson" id="lesson2">
+  <div class="number">02 / THE SPECIAL CLUE</div>
+  <h2>Meet the STR</h2>
+  <p>STR stands for <strong>Short Tandem Repeat</strong>. It is a short DNA sequence repeated several times in a row at a particular location in the genome.</p>
+  <p>Think of a repeated word in a sentence. One person might have a sequence repeated 8 times, while another has it repeated 11 times at the same location. These repeat counts can be measured and recorded as <strong>alleles</strong>.</p>
+  <div class="visual">
+    <div class="visual-title"> A sequence repeating</div>
+    <div class="repeat-sequence" aria-label="Animated repeated DNA sequence"><span class="repeat-unit">GATA</span><span class="repeat-unit">GATA</span><span class="repeat-unit">GATA</span><span class="repeat-unit">GATA</span></div>
+    <p style="text-align:center">Example sequence: <strong>GATA × 4</strong></p>
+    <div class="note"><strong>Important distinction:</strong> STR alleles are usually reported as repeat counts, such as 10 or 12, not as the DNA letters themselves. The example above is illustrative; real STR loci have specific names and repeat structures.</div>
+  </div>
+  <h3>Three terms worth remembering</h3>
+  <div class="concept-grid">
+    <div class="concept"><div class="big">DNA</div><p>The molecule carrying genetic information.</p></div>
+    <div class="concept"><div class="big">STR</div><p>A short DNA sequence repeated multiple times.</p></div>
+    <div class="concept"><div class="big">Allele</div><p>A version of a DNA region. For an STR, it is commonly described by its repeat count.</p></div>
+  </div>
+</section>
+
+<section class="lesson" id="lesson3">
+  <div class="number">03 / COMPARING EVIDENCE</div>
+  <h2>How does STR paternity testing work?</h2>
+  <p>At a typical autosomal STR location, a person has two alleles: one inherited from each biological parent. A child’s alleles are compared with the possible inherited contributions from the tested adults.</p>
+  <p>For example, suppose a child's alleles at one STR location are 12 and 14. If the mother's genotype is 10 and 12, she can account for the child's 12 allele. The child's 14 allele would then need to be explained by the biological father, under the usual inheritance model.</p>
+  <div class="visual">
+    <div class="visual-title">Animation 3 · One illustrative STR location</div>
+    <div class="profile">
+      <div class="profile-card"><h3>Mother</h3><div class="alleles"><span class="allele">10</span><span class="allele inherited">12</span></div></div>
+      <div class="profile-card"><h3>Child</h3><div class="alleles"><span class="allele inherited">12</span><span class="allele inherited">14</span></div></div>
+      <div class="profile-card"><h3>Alleged father</h3><div class="alleles"><span class="allele">14</span><span class="allele">16</span></div></div>
+    </div>
+    <div class="color-key"><span><i class="dot cyan"></i>Illustrative shared allele</span><span><i class="dot blue"></i>Other allele in the example</span></div>
+    <p style="text-align:center;font-size:.86rem">Example values only. This illustration is not a real test result.</p>
+  </div>
+  <div class="note"><strong>Does one matching STR prove paternity?</strong> No. Many people can share the same allele at a particular location. Laboratories examine multiple STR locations and use population allele frequencies and statistical calculations to assess the strength of the evidence.</div>
+  <h3>What do the results mean?</h3>
+  <p>A person's DNA profile can be consistent with biological paternity or contain genetic incompatibilities that support exclusion. Real interpretations must account for the tested loci, sample quality, mutations, and other relevant factors. A statistical likelihood is evidence, not automatically the probability that a person is the father.</p>
+</section>
+
+<section class="lesson">
+  <div class="number">04 / PUT IT TOGETHER</div>
+  <h2>From a DNA sample to a conclusion</h2>
+  <div class="concept-grid">
+    <div class="concept"><div class="big">01 · Collect</div><p>Obtain properly identified DNA samples using an appropriate method, such as a cheek swab.</p></div>
+    <div class="concept"><div class="big">02 · Measure</div><p>Analyse STR locations and record the allele values for each person.</p></div>
+    <div class="concept"><div class="big">03 · Interpret</div><p>Compare inherited alleles across multiple locations and evaluate the statistical evidence.</p></div>
+  </div>
+</section>
+<iframe width="560" height="315" src="https://www.youtube.com/embed/7onjVBsQwQ8?si=pm-rEww-iiqNp7hm?start=0&end=143" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+<section class="cta" id="tester">
+  <div class="eyebrow">Ready to try it?</div>
+  <h2>Now meet the STR Paternity Tester.</h2>
+  <p>You've learned what STRs and alleles are. Next, use the tester to enter STR allele values and explore how genetic profiles can be compared.</p>
+  <a class="button" href="model.html">Launch STR Tester ↗</a>
+  <p style="font-size:.83rem">The tester is a separate local HTML file. Keep both files in the same folder, or update the link to match your tester's filename.</p>
+</section>
+</main>
+
+<footer>
+  <p>STR Lab · An educational introduction to DNA and paternity testing</p>
+  <p>Illustrations and allele examples are conceptual, not laboratory evidence.</p>
+</footer>
+
+<script>
+(() => {
+  "use strict";
+
+  const canvas = document.getElementById("dnaCanvas");
+  const ctx = canvas.getContext("2d", {alpha:true});
+  const hero = canvas.parentElement;
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let W=0,H=0,DPR=1,last=performance.now(),time=0;
+  const TAU=Math.PI*2;
+  let bokeh=[];
+
+  function resize(){
+    const r=hero.getBoundingClientRect();
+    W=r.width; H=r.height; DPR=Math.min(window.devicePixelRatio||1,2);
+    canvas.width=Math.round(W*DPR); canvas.height=Math.round(H*DPR);
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+    bokeh=Array.from({length:Math.max(18,Math.floor(W/35))},()=>({
+      x:Math.random()*W,y:Math.random()*H,r:8+Math.random()*45,
+      a:.025+Math.random()*.065,p:Math.random()*TAU,s:.15+Math.random()*.35
+    }));
+  }
+  if("ResizeObserver" in window) new ResizeObserver(resize).observe(hero);
+  else window.addEventListener("resize",resize);
+  resize();
+
+  function glowSphere(x,y,r,z,t,i){
+    const d=(z+1)/2, pulse=.95+.05*Math.sin(t*1.4+i*.6);
+    ctx.save();
+    ctx.globalAlpha=.55+d*.45;
+    ctx.shadowColor="#00cfff"; ctx.shadowBlur=r*(2.2+d*2);
+    const g=ctx.createRadialGradient(x-r*.34,y-r*.38,r*.03,x,y,r*1.45);
+    g.addColorStop(0,"rgba(230,255,255,.98)");
+    g.addColorStop(.15,"rgba(137,238,255,.97)");
+    g.addColorStop(.4,"rgba(40,174,225,.9)");
+    g.addColorStop(.72,"rgba(8,82,143,.86)");
+    g.addColorStop(1,"rgba(0,35,75,0)");
+    ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,r*1.45,0,TAU);ctx.fill();
+    ctx.shadowBlur=0;
+    const s=ctx.createRadialGradient(x-r*.34,y-r*.38,r*.02,x+r*.08,y+r*.12,r);
+    s.addColorStop(0,`rgba(240,255,255,${.86*pulse})`);
+    s.addColorStop(.17,"rgba(132,235,255,.96)");
+    s.addColorStop(.43,"rgba(36,163,215,.95)");
+    s.addColorStop(.76,"rgba(8,76,133,.98)");
+    s.addColorStop(1,"rgba(2,26,57,.98)");
+    ctx.fillStyle=s;ctx.beginPath();ctx.arc(x,y,r,0,TAU);ctx.fill();
+    ctx.strokeStyle=`rgba(159,244,255,${.18+d*.3})`;ctx.lineWidth=Math.max(.5,r*.055);
+    ctx.beginPath();ctx.arc(x,y,r*.91,-.95,2.5);ctx.stroke();
+    ctx.fillStyle=`rgba(255,255,255,${.42+d*.24})`;
+    ctx.beginPath();ctx.ellipse(x-r*.3,y-r*.34,r*.18,r*.09,-.65,0,TAU);ctx.fill();
+    ctx.restore();
+  }
+
+  function drawBackground(t){
+    const bg=ctx.createRadialGradient(W*.5,H*.5,5,W*.5,H*.5,Math.max(W,H)*.72);
+    bg.addColorStop(0,"rgba(12,43,72,.35)");bg.addColorStop(1,"rgba(1,5,14,.15)");
+    ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+    for(const b of bokeh){
+      const x=b.x,y=b.y,r=b.r*(W>700?1.1:.8);
+      const a=b.a*(.8+.2*Math.sin(t*b.s+b.p));
+      const g=ctx.createRadialGradient(x,y,0,x,y,r);
+      g.addColorStop(0,`rgba(0,190,255,${a})`);
+      g.addColorStop(.4,`rgba(0,125,220,${a*.35})`);
+      g.addColorStop(1,"rgba(0,90,180,0)");
+      ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,r,0,TAU);ctx.fill();
+    }
+  }
+
+  function drawDNA(t){
+    // Keep the helix centered and prominent on desktop, compact on phones.
+    const cx=W*.5, cy=H*.51;
+    const amp=Math.min(W*.19, H*.31, 175);
+    const span=H*.95;
+    const n=Math.max(34,Math.min(68,Math.ceil(H/8)));
+    const phase=t*(reducedMotion?0:.55);
+    const pts=[];
+    for(let i=0;i<=n;i++){
+      const u=i/n,y=cy-span/2+u*span;
+      const a=u*Math.PI*5.25+phase;
+      const taper=.86+.14*Math.sin(Math.PI*u);
+      pts.push({y,ax:cx+Math.cos(a)*amp*taper,az:Math.sin(a),
+        bx:cx+Math.cos(a+Math.PI)*amp*taper,bz:Math.sin(a+Math.PI)});
+    }
+
+    // Rungs and their cyan bloom.
+    pts.forEach(p=>{
+      const d=(p.az+1)/2;
+      ctx.save();ctx.lineCap="round";
+      ctx.strokeStyle=`rgba(0,205,255,${.07+d*.15})`;
+      ctx.lineWidth=5+d*2;ctx.shadowColor="#00cfff";ctx.shadowBlur=8+d*9;
+      ctx.beginPath();ctx.moveTo(p.ax,p.y);ctx.lineTo(p.bx,p.y);ctx.stroke();
+      const rg=ctx.createLinearGradient(p.ax,p.y,p.bx,p.y);
+      rg.addColorStop(0,"rgba(40,177,235,.12)");
+      rg.addColorStop(.5,`rgba(177,248,255,${.18+d*.55})`);
+      rg.addColorStop(1,"rgba(40,177,235,.12)");
+      ctx.shadowBlur=0;ctx.strokeStyle=rg;ctx.lineWidth=.7+d*.8;
+      ctx.beginPath();ctx.moveTo(p.ax,p.y);ctx.lineTo(p.bx,p.y);ctx.stroke();
+      ctx.restore();
+    });
+
+    // Smooth luminous backbone strands.
+    ["a","b"].forEach(strand=>{
+      ctx.save();ctx.lineCap="round";ctx.lineJoin="round";ctx.beginPath();
+      pts.forEach((p,i)=>{const x=strand==="a"?p.ax:p.bx;if(i===0)ctx.moveTo(x,p.y);else ctx.lineTo(x,p.y)});
+      ctx.strokeStyle="rgba(18,157,218,.45)";ctx.lineWidth=3;
+      ctx.shadowColor="#00cfff";ctx.shadowBlur=15;ctx.stroke();
+      ctx.strokeStyle="rgba(167,242,255,.38)";ctx.lineWidth=.85;ctx.shadowBlur=3;ctx.stroke();
+      ctx.restore();
+    });
+
+    // Depth-sort spherical molecular beads so the helix reads as 3D.
+    const beads=[];
+    pts.forEach((p,i)=>{beads.push({x:p.ax,y:p.y,z:p.az,i});beads.push({x:p.bx,y:p.y,z:p.bz,i:i+.6})});
+    beads.sort((a,b)=>a.z-b.z);
+    beads.forEach(b=>{
+      const d=(b.z+1)/2;
+      const r=(W<520?2.6:3.1)+d*(W<520?1.6:2.7);
+      glowSphere(b.x,b.y,r,b.z,t,b.i);
+    });
+
+    // A few floating particles for a cinematic scientific feel.
+    for(let i=0;i<24;i++){
+      const seed=i*17.17;
+      const x=cx+Math.sin(t*.22+seed)*amp*2.15;
+      const y=((seed*29+(reducedMotion?0:t*10))%(H+30))-15;
+      ctx.fillStyle=`rgba(103,224,255,${.08+.12*(.5+.5*Math.sin(t+seed))})`;
+      ctx.beginPath();ctx.arc(x,y,.6+(i%3)*.35,0,TAU);ctx.fill();
+    }
+  }
+
+  function frame(now){
+    const dt=Math.min((now-last)/1000,.05);last=now;
+    if(!reducedMotion)time+=dt;
+    ctx.clearRect(0,0,W,H);
+    drawBackground(time);drawDNA(time);
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+
+gsap.registerPlugin(ScrollTrigger);
+
+gsap.utils.toArray(".lesson, .cta").forEach((section) => {
+  gsap.fromTo(
+    section,
+    { autoAlpha: 0, y: 24 },
+    {
+      autoAlpha: 1,
+      y: 0,
+      duration: 0.65,
+      ease: "power2.out",
+      scrollTrigger: {
+        trigger: section,
+        start: "top 88%",
+        once: true
+      }
+    }
+  );
+});
+</script>
+</body>
+</html>
