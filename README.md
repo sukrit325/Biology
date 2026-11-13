@@ -373,7 +373,7 @@ MIT License — See LICENSE file for details.
 ## 🆘 Support & Issues
 
 For technical issues, feature requests, or dataset questions:
-- Check documentation at https://hermes-agent.nousresearch.com/docs
+- Email me on vanthex.dev@gmail.com
 - Review ML pipeline code in `main.py` and `ml_engine.py`
 - Inspect forensic logic in `model.html` JavaScript section
 
